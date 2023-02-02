@@ -1,0 +1,80 @@
+{
+	"jsonrpc": "2.0",
+	"method": "create",
+	"id": 1,
+	"params": [
+		{
+			"name": "create_pr1_wf1_t1",
+			"context": {
+				"project":
+					{
+						"id": 1,
+						"name": "pr1",
+						"workflows": [
+							{
+								"id": 1,
+								"name": "wf1",
+								"tasks": [
+									{
+										"id": 1,
+										"name": "t15",
+										"place": 1,
+										"exec": "parallel",
+										"function": "simple",
+										"params": [
+											"20"
+										]
+									},
+									{
+										"id": 2,
+										"name": "t16",
+										"place": 0,
+										"exec": "await",
+										"function": "simple",
+										"params": [
+											"15"
+										]
+									}
+								]
+							},
+							{
+								"id": 2,
+								"name": "wf2",
+								"tasks": [
+									{
+										"id": 1,
+										"name": "t23",
+										"place": 0,
+										"exec": "parallel",
+										"function": "simple",
+										"params": [
+											"10"
+										]
+									},
+									{
+										"id": 2,
+										"name": "t24",
+										"place": 2,
+										"exec": "await",
+										"function": "echo",
+										"params": [
+											"5"
+										]
+									}
+								]
+							}
+						]
+					},
+				"conf_path": "/etc/spa/spa.conf",
+				"auth": {
+					"user": "matvey",
+					"key": "~/key.txt"
+				},
+				"server": {
+					"ip_addr": "127.0.0.1",
+					"port": 5000
+				}
+			}
+		}
+	]
+}

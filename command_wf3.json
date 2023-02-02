@@ -1,0 +1,45 @@
+{
+	"jsonrpc": "2.0",
+	"method": "create",
+	"id": 1,
+	"params": [
+		{
+			"name": "create_pr1_wf1_t1",
+			"context": {
+				"project":
+					{
+						"id": 1,
+						"name": "pr1",
+						"workflows": [
+							{
+								"id": 1,
+								"name": "wf1",
+								"tasks": [
+
+									{
+										"id": 3,
+										"name": "t14",
+										"place": 0,
+										"exec": "parallel",
+										"function": "simple",
+										"params": [
+											"25"
+										]
+									}
+								]
+							}
+						]
+					},
+				"conf_path": "/etc/spa/spa.conf",
+				"auth": {
+					"user": "matvey",
+					"key": "~/key.txt"
+				},
+				"server": {
+					"ip_addr": "127.0.0.1",
+					"port": 5000
+				}
+			}
+		}
+	]
+}
