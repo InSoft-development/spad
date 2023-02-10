@@ -11,7 +11,7 @@ import os
 import atexit
 
 project_name = ""  # один сервер - один проект
-workflow_processes = dict
+workflow_processes = {}
 
 
 class ExecutionQueue(object):
@@ -116,7 +116,7 @@ def create(data) -> Result:
             os.makedirs(path)
         except OSError:
             return Error(1, {"message": "project tree not created"})
-
+    workflows_q = {}
     for workflow_json in project["workflows"]:
         path = "/opt/spa/data/" + project_name + "/" + workflow_json["name"]
         old_tasks = []
@@ -124,14 +124,14 @@ def create(data) -> Result:
             print(path)
             try:
                 os.makedirs(path)
-                workflows_q = ExecutionQueue(workflow_json["name"])
+                workflows_q[workflow_json["name"]] = ExecutionQueue(workflow_json["name"])
             except OSError:
                 return Error(1, {"message": "wf tree not created"})
             # queue file construction
         else:
             with open(path + "/workflow.json", "r") as fp:
                 old_tasks = json.load(fp)
-            workflows_q = ExecutionQueue(workflow_json["name"])
+            workflows_q[workflow_json["name"]] = ExecutionQueue(workflow_json["name"])
             workflows_q[workflow_json["name"]].load()
 
         new_tasks = workflow_json["tasks"]
@@ -151,7 +151,7 @@ def create(data) -> Result:
         new_tasks = workflow_json["tasks"]
         try:
             for task in new_tasks:
-                workflows_q.add_task(task)
+                workflows_q[workflow_json["name"]].add_task(task)
         except OSError:
             return Error(1, {"message": "task can not be created"})
 
@@ -160,27 +160,99 @@ def create(data) -> Result:
 
 @method
 def run(data) -> Result:
-    if data["workflow"]["name"] in workflow_processes:
+    if data["workflow"] in workflow_processes:
         return Error(1, {"message": "this workflow is executing now"})
     else:
         # Запоминаем субпроцесс
         json_string = json.dumps(data)
         p = subprocess.Popen(["/opt/spa/bin/run.py", json_string])
-        pid = p.pid()
-        path = "/opt/spa/bin/data/" + "/opt/spa/data/" + data["project"]["name"] + "/" + data["workflow"]["name"]
-        open(path + "/pid").write(pid)
-        workflow_processes[data["workflow"]["name"]] = p
+        path = "/opt/spa/data/" + data["project"] + "/" + data["workflow"]
+        open(path + "/pid","w").write(str(p.pid))
+        workflow_processes[data["workflow"]] = p
         return Success({"answer": "running in subprocess"})
+
+
+def kill_wf(wf):
+    p = workflow_processes[wf]
+    path = "/opt/spa/bin/data/" + project_name + "/" + wf
+    ret_code = p.poll()
+    if ret_code is not None:
+        p.terminate()
+        time.sleep(0.5)
+        ret_code = p.poll()
+        if ret_code is not None:
+            p.terminate()
+            time.sleep(5)
+            ret_code = p.poll()
+            if ret_code is not None:
+                # !FIXME может не надо килять прям?
+                # return Error(1, {"message": "ERROR: can't kill workflow"})
+                p.kill()
+                time.sleep(5)
+                ret_code = p.poll()
+                if ret_code is not None:
+                    print("ERROR: can't kill workflow", wf)
+                    return Error(1, {"message": "ERROR: can't kill workflow"})
+    if ret_code is None:
+        if "pid" in os.listdir(path):
+            os.remove(path + "/pid")
+        workflow_processes.pop(wf)
+    return Success({"answer": "workflow stopped"})
 
 
 @method
 def stop(data) -> Result:
-    if data["workflow"]["name"] not in workflow_processes:
+    if data["workflow"]not in workflow_processes:
         return Error(1, {"message": "this workflow is not executing now"})
     else:
-        kill_wf(workflow_processes[data["workflow"]["name"]])
-        return Success({"answer": "subprocess stoped"})
+        return kill_wf(workflow_processes[data["workflow"]])
 
+
+@method
+def status(data) -> Result:
+    if not "project" in data:
+        data["project"] = project_name
+    path = "/opt/spa/data/" + data["project"]
+    if "task" in data:
+        path+= "/" + data["workflow"] + "/" + data["task"]
+        with open(path + "task.json", "r") as fp:
+            st = json.load(fp)["task"]["info"]["status"]
+        return Success({"answer": st})
+    elif "workflow" in data:
+        path += "/" + data["workflow"]
+        with open(path + "/workflow.json", "r") as fp:
+            wf_tasks = json.load(fp)
+        st = {}
+        for t in wf_tasks:
+            st[t["name"]]= t["status"]
+        return Success({"answer": json.dumps(st)})
+    else:
+        return Error(1, {"message": "define workflow for status examination"})
+
+@method
+def dump(data) -> Result:
+    if  "project" not in data:
+        data["project"] = project_name
+    path = "/opt/spa/data/" + data["project"]
+    if "workflow" in data:
+        if "task" in data:
+            path += "/" + data["workflow"] + "/" + data["task"]
+            with open(path + "task.json", "r") as fp:
+                st = json.load(fp)
+            return Success({"answer": st})
+        else:
+            path += "/" + data["workflow"]
+            with open(path + "/workflow.json", "r") as fp:
+                wf_tasks = json.load(fp)
+            return Success({"answer": json.dumps(wf_tasks)})
+    else:
+        pr_j = {}
+        wfs = os.listdir(path)
+        for wf in wfs:
+            path += "/" + wf
+            with open(path + "/workflow.json", "r") as fp:
+                pr_j[wf] = json.load(fp)
+        return Success({"answer": json.dumps(pr_j)})
 
 # !FIXME Тут делаем метод записи статуса в Queue
 # Хмм... А он не нужен: такого файла нет. Это файл воркфлоу, и им после создания владеет процесс, исполняющий воркфлоу
@@ -244,37 +316,15 @@ class TestHttpServer(SimpleHTTPRequestHandler):
             self.wfile.write(response.encode())
 
 
-def kill_wf(wf):
-    p = workflow_processes[wf]
-    path = "/opt/spa/bin/data/" + project_name + "/" + wf
-    ret_code = p.poll()
-    if ret_code is not None:
-        p.terminate()
-        time.sleep(0.5)
-        ret_code = p.poll()
-        if ret_code is not None:
-            p.terminate()
-            time.sleep(5)
-            ret_code = p.poll()
-            if ret_code is not None:
-                p.kill()
-                time.sleep(5)
-                ret_code = p.poll()
-                if ret_code is not None:
-                    print("ERROR: can't kill workflow", wf)
-    if ret_code is None:
-        if "pid" in os.listdir(path):
-            os.remove(path + "/pid")
-        workflow_processes.pop(wf)
-
 
 def kill_all():
-    for wf in workflow_processes.keys():
-        kill_wf(wf)
+    print()
+    for key, value in workflow_processes:
+        kill_wf(key)
 
 if __name__ == "__main__":
     # !FIXME зарегить atend функцию по убийству воркфлоу всех и сделать
-    atexit.register(kill_all())
+    atexit.register(kill_all)
     try:
         HTTPServer(("localhost", 5000), TestHttpServer).serve_forever()
     finally:

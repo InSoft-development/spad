@@ -15,9 +15,11 @@ root_path = "/opt/spa/data/"
 
 
 class RunningTask(object):
-    def __init__(self,task_name):
+    def __init__(self, task_name):
+        self.task_name = task_name
         self.path = root_path + project + "/" + workflow + "/" + task_name
         self.pid = ""
+
         self.log = open(self.path + "/out", "w")
         self.err = open(self.path + "/err", "w")
         self.process = None
@@ -29,6 +31,7 @@ class RunningTask(object):
         return task_data
 
     def run(self):
+        print("RUN:", self.task_name)
         self.set_json_status("running")
         function_path = root_path + "/../bin/" + self.task_json()["task"]["function"]
         self.process = subprocess.Popen([function_path] + self.task_json()["task"]["params"],
@@ -37,18 +40,22 @@ class RunningTask(object):
         open(self.path + "/pid", "w").write(self.pid)
 
     def wait_not_parallel(self):
+        print("WAIT:", self.task_name)
         self.process.communicate()
+
         # wait till end...
         os.remove(self.path + "/pid")
-        status = self.get_exec_status()
+        status = self.renew_exec_status()
         print("task ended with status:", status)
         self.set_json_status(status)
         self.log.close()
         self.err.close()
 
     def set_json_status(self,status):
+        print("STATUS:", self.task_name, status)
         task_json_content = self.task_json()
-        task_json_content["task"]["info"]["status"] = status
+        print(task_json_content)
+        task_json_content["info"]["status"] = status
         with open(self.path + "/task.json", "w") as task_json_file:
             json.dump(task_json_content,task_json_file)
 
@@ -75,7 +82,7 @@ class RunningTask(object):
                         os.remove(self.path + "/pid")
                     return "terminated" + str(status)
         elif "pid" in os.listdir(self.path):
-            pid = open(os.path(self.path, "pid"), "r").read().splitlines()[0]
+            pid = open(self.path + "/pid", "r").read()
             print("ERROR! pid file without process finded!", self.path, pid, " last status was", json_status, ". pid file removed, status \"not run\" supposed")
             os.remove(self.path + "/pid")
             return("not run")
@@ -86,21 +93,24 @@ class RunningTask(object):
             return json_status #new, or earlier returned:success, error, terminated
 
     def stop_task(self): #Штатная остановка расчетной бесконечной задачи - при завершении воркфлоу
-        if self.process.poll() is not None:
-            self.process.terminate()
-            time.sleep(0.5)
+        print("STOP:",self.task_name)
+        if self.process:
             if self.process.poll() is not None:
-                self.kill_task()
+                self.process.terminate()
+                time.sleep(0.5)
+                if self.process.poll() is not None:
+                    self.kill_task()
+                else:
+                    if "pid" in os.listdir(self.path):
+                        os.remove(self.path + "/pid")
             else:
                 if "pid" in os.listdir(self.path):
                     os.remove(self.path + "/pid")
-        else:
-            if "pid" in os.listdir(self.path):
-                os.remove(self.path + "/pid")
         self.log.close()
         self.err.close()
 
     def kill_task(self): #грубое прибитие задачи
+        print("KILL:", self.task_name)
         self.process.kill()
         time.sleep(0.5)
         if self.process.poll() is not None:
@@ -118,16 +128,16 @@ class RunningTask(object):
             if "pid" in os.listdir(self.path):
                 os.remove(self.path + "/pid")
 
-
-
     def __del__(self):
+        print("DEL:", self.task_name)
         self.stop_task()
 
 def run_task(task_name):
     # run single task
+    print("RUN:", task_name)
     new_task = RunningTask(task_name)
     new_task.run()
-    if new_task.task_json["task"]["exec"] == "await":
+    if new_task.task_json()["task"]["exec"] == "await":
         new_task.wait_not_parallel()
         return None
     else:
@@ -144,7 +154,7 @@ def kill_all_tasks():
         if os.path.isdir(os.path.join(wf_path,task_dir)):
             if not task_dir in wf_tasks: # если какие-то таски не попали в json wf
                 if "pid" in os.listdir(os.path.join(wf_path,task_dir)):
-                    pid = open(os.path(wf_path,task_dir,"pid"), "r").read().splitlines()[0]
+                    pid = open(wf_path + "/" + task_dir + "/pid", "r").read()
                     print ("ERROR: Can't stop unknown process with pid:", pid)
                     #!FIXME а может быть за это время этот пид перешел к другому процессу?
                     #os.kill(int(pid), signal.SIGKILL)
@@ -167,11 +177,13 @@ def review_statuses():
         with open(json_task_path + "/task.json", "r") as task_json_file:
             task_json = json.load(task_json_file)
         t["status"] = task_json["status"]
+    print("STATUS:\n",wf_tasks)
     with open(path+"workflow.json", "w") as fp:
         json.dump(wf_tasks,fp)
 
+
 def handler_killer(signum, frame):
-    print("stop workflow execution with", signum)
+    print("STOP: \n Stoping workflow execution with", signum)
     print("frame:",frame)
     kill_all_tasks()
     exit(0)
@@ -182,9 +194,9 @@ signal.signal(signal.SIGINT,handler_killer)
 signal.signal(signal.SIGALRM,handler_killer)
 signal.signal(signal.SIGQUIT,handler_killer)
 signal.signal(signal.SIGABRT,handler_killer)
-signal.signal(signal.SIGBREAK,handler_killer)
+# signal.signal(signal.SIGBREAK,handler_killer)
 
-#Штука опасная, так как может быть асинхронной - и вот, нате, гонка за файл воркфлоу. Поэтому игнорируем  - в итоге зомбей не будет
+# Штука опасная, так как может быть асинхронной - и вот, нате, гонка за файл воркфлоу. Поэтому игнорируем  - в итоге зомбей не будет
 signal.signal(signal.SIGCHLD,signal.SIG_IGN)
 atexit.register(kill_all_tasks)
 
@@ -196,7 +208,7 @@ if __name__ == "__main__":
         if "task" in data:
             if run_task(data["task"]) is not None:
                 while running_tasks:
-                    review_statuses
+                    review_statuses()
                     time.sleep(5)
             #return Success({"answer": stdout})
         else:
@@ -206,10 +218,10 @@ if __name__ == "__main__":
                 tasks = json.load(wf_json_file)#os.listdir(root_path + project + "/" + workflow)
             task_names = [t["name"] for t in tasks]
             for task in tasks:
-                run_task(project, workflow, task["name"])
+                run_task(task["name"])
 
             while running_tasks:
-                review_statuses
+                review_statuses()
                 time.sleep(5)
 
     #except KeyboardInterrupt:
