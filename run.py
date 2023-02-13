@@ -19,7 +19,6 @@ class RunningTask(object):
         self.task_name = task_name
         self.path = root_path + project + "/" + workflow + "/" + task_name
         self.pid = ""
-
         self.log = open(self.path + "/out", "w")
         self.err = open(self.path + "/err", "w")
         self.process = None
@@ -41,12 +40,10 @@ class RunningTask(object):
 
     def wait_not_parallel(self):
         print("WAIT:", self.task_name)
-        self.process.communicate()
-
+        self.process.wait()
         # wait till end...
         os.remove(self.path + "/pid")
         status = self.renew_exec_status()
-        print("task ended with status:", status)
         self.set_json_status(status)
         self.log.close()
         self.err.close()
@@ -54,16 +51,15 @@ class RunningTask(object):
     def set_json_status(self,status):
         print("STATUS:", self.task_name, status)
         task_json_content = self.task_json()
-        print(task_json_content)
         task_json_content["info"]["status"] = status
         with open(self.path + "/task.json", "w") as task_json_file:
-            json.dump(task_json_content,task_json_file)
+            json.dump(task_json_content,task_json_file,indent=3)
 
     def renew_exec_status(self):
         json_status = self.task_json()["info"]["status"]
         if self.process:
             status = self.process.poll()
-            if not status:
+            if status is None:
                 return "running"
             else:
                 if status == 0:
@@ -93,54 +89,60 @@ class RunningTask(object):
             return json_status #new, or earlier returned:success, error, terminated
 
     def stop_task(self): #Штатная остановка расчетной бесконечной задачи - при завершении воркфлоу
-        print("STOP:",self.task_name)
-        if self.process:
-            if self.process.poll() is not None:
+        print("STOP: stopping ",self.task_name)
+        if self.process and "pid" in os.listdir(self.path):
+            if self.process.poll() is None: #is running
                 self.process.terminate()
-                time.sleep(0.5)
-                if self.process.poll() is not None:
-                    self.kill_task()
-                else:
-                    if "pid" in os.listdir(self.path):
-                        os.remove(self.path + "/pid")
-            else:
-                if "pid" in os.listdir(self.path):
-                    os.remove(self.path + "/pid")
+                time.sleep(1)
+                if self.process.poll() is None:  # is running
+                    #self.process.terminate()
+                    time.sleep(5)
+                    if self.process.poll() is None:
+                        self.kill_task()
+
+        if "pid" in os.listdir(self.path):
+            os.remove(self.path + "/pid")
         self.log.close()
         self.err.close()
 
     def kill_task(self): #грубое прибитие задачи
         print("KILL:", self.task_name)
         self.process.kill()
-        time.sleep(0.5)
-        if self.process.poll() is not None:
-            print("can't kill subprocess, trying again... ", self.pid)
+        time.sleep(1)
+        if self.process.poll() is None:
+            print("ERROR! can't kill subprocess, trying again... ", self.pid)
             self.process.kill()
-            time.sleep(5)
-            if self.process.poll() is not None:
+            time.sleep(1)
+            if self.process.poll() is None:
                 print("ERROR! can't kill subprocess!", self.pid)
+                return 1
                 #!FIXME: а нужен ли эксепшен?
                 #raise Exception("can't kill subprocess "+str(self.pid))
-            else:
-                if "pid" in os.listdir(self.path):
-                    os.remove(self.path + "/pid")
-        else:
-            if "pid" in os.listdir(self.path):
-                os.remove(self.path + "/pid")
+        return 0
 
     def __del__(self):
         print("DEL:", self.task_name)
         self.stop_task()
 
+def clear_wf():
+    path = root_path + project + "/" + workflow
+    with open(path + "/workflow.json", "r") as wf_json_file:
+        tasks = json.load(wf_json_file)  # os.listdir(root_path + project + "/" + workflow)
+    task_names = [t["name"] for t in tasks]
+    for t in task_names:
+        task_path = path + "/" + t
+        if "pid" in os.listdir(task_path):
+            print("WARNING: pid file exists in", t)
+            os.remove(task_path + "/pid")
+
 def run_task(task_name):
-    # run single task
-    print("RUN:", task_name)
     new_task = RunningTask(task_name)
     new_task.run()
     if new_task.task_json()["task"]["exec"] == "await":
         new_task.wait_not_parallel()
         return None
     else:
+        print("running in parallel")
         running_tasks.append(new_task)
         return new_task
 
@@ -155,14 +157,14 @@ def kill_all_tasks():
             if not task_dir in wf_tasks: # если какие-то таски не попали в json wf
                 if "pid" in os.listdir(os.path.join(wf_path,task_dir)):
                     pid = open(wf_path + "/" + task_dir + "/pid", "r").read()
-                    print ("ERROR: Can't stop unknown process with pid:", pid)
+                    print ("ERROR: Can't stop unknown process with pid:", pid, "in task", task_dir)
                     #!FIXME а может быть за это время этот пид перешел к другому процессу?
                     #os.kill(int(pid), signal.SIGKILL)
 
 def review_statuses():
     # собрать по всем таскам их текущий статус настоящий, заодно убирая pid файлы умерших - и записать их в json тасков
     for task in running_tasks:
-        old_status = task.task_json["info"]["status"]
+        old_status = task.task_json()["info"]["status"]
         new_status = task.renew_exec_status()
         if new_status != old_status:
             task.set_json_status(new_status)
@@ -176,15 +178,14 @@ def review_statuses():
         json_task_path = path + t["name"]
         with open(json_task_path + "/task.json", "r") as task_json_file:
             task_json = json.load(task_json_file)
-        t["status"] = task_json["status"]
-    print("STATUS:\n",wf_tasks)
+        t["status"] = task_json["info"]["status"]
     with open(path+"workflow.json", "w") as fp:
-        json.dump(wf_tasks,fp)
+        json.dump(wf_tasks,fp,indent=3)
 
 
 def handler_killer(signum, frame):
-    print("STOP: \n Stoping workflow execution with", signum)
-    print("frame:",frame)
+    print("STOP: \n Stoping workflow execution with signal", signum)
+    print("frame:", frame)
     kill_all_tasks()
     exit(0)
 
@@ -194,8 +195,7 @@ signal.signal(signal.SIGINT,handler_killer)
 signal.signal(signal.SIGALRM,handler_killer)
 signal.signal(signal.SIGQUIT,handler_killer)
 signal.signal(signal.SIGABRT,handler_killer)
-# signal.signal(signal.SIGBREAK,handler_killer)
-
+signal.signal(signal.SIGHUP,handler_killer)
 # Штука опасная, так как может быть асинхронной - и вот, нате, гонка за файл воркфлоу. Поэтому игнорируем  - в итоге зомбей не будет
 signal.signal(signal.SIGCHLD,signal.SIG_IGN)
 atexit.register(kill_all_tasks)
@@ -213,7 +213,7 @@ if __name__ == "__main__":
             #return Success({"answer": stdout})
         else:
             #run wf
-            #!FIXME тут надо форкнуть параллельный процесс-запускалку, где мы уже шпарим по очереди Queue.json
+            clear_wf()
             with open(root_path + project + "/" + workflow + "/workflow.json", "r") as wf_json_file:
                 tasks = json.load(wf_json_file)#os.listdir(root_path + project + "/" + workflow)
             task_names = [t["name"] for t in tasks]
@@ -231,6 +231,6 @@ if __name__ == "__main__":
     #    print("sys exit")
     #    kill_all_tasks()
     finally:
-        print("finally, killing all remained tasks")
+        print("STATUS: workflow ", workflow, "is stopped")
         kill_all_tasks()
 

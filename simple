@@ -1,8 +1,14 @@
 #!/bin/bash
+i=5
 if [ -n "$1" ]
 then
-	stress -c 1 -i 1 -m 1 -t $1
+	i=$1
 fi
 
+while [ $i -gt 0 ]
+do
+	echo $i
+	sleep 1
+	i=$[ $i - 1 ]
+done
 
-echo $1
