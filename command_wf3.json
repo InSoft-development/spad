@@ -23,7 +23,7 @@
 										"exec": "parallel",
 										"function": "simple",
 										"params": [
-											"25"
+											"5"
 										]
 									}
 								]

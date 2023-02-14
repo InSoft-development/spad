@@ -32,7 +32,7 @@
 										"exec": "await",
 										"function": "simple",
 										"params": [
-											"15"
+											"5"
 										]
 									}
 								]

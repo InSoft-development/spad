@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import datetime
+import signal
 import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from jsonrpcserver import method, Result, Success, dispatch, Error
@@ -172,29 +173,28 @@ def kill_wf(pr,wf):
     ret_code = p.poll()
     if ret_code is None:
         print("INFO: terminating ", wf)
-        p.terminate()
+        p.send_signal(signal.SIGUSR1)
+        #p.terminate()
         time.sleep(number_of_tasks)
         ret_code = p.poll()
         if ret_code is None:
-            print("ERROR: can't terminate workflow within ", number_of_tasks, " sec", wf)
-            #p.terminate()
+            print("ERROR: can't stop workflow within ", number_of_tasks, " sec", wf)
             time.sleep(number_of_tasks*5)
             ret_code = p.poll()
             if ret_code is None:
-                print("ERROR: can't terminate workflow within ", number_of_tasks*6, " sec", wf)
-                #p.terminate()
+                print("ERROR: can't stop workflow within ", number_of_tasks*6, " sec", wf)
                 time.sleep(number_of_tasks*5)
                 ret_code = p.poll()
                 if ret_code is None:
-                    print("ERROR: can't terminate workflow within ", number_of_tasks*11 , " sec, trying to kill", wf)
+                    print("ERROR: can't stop workflow within ", number_of_tasks*11, " sec, trying to kill", wf)
                     # !FIXME может не надо килять прям?
-                    return Error(1, {"message": "ERROR: can't kill workflow"})
-                    #p.kill()
-                    # time.sleep(5)
-                    # ret_code = p.poll()
-                    # if ret_code is None:
-                    #     print("ERROR: can't kill workflow!", wf)
-                    #     return Error(1, {"message": "ERROR: can't kill workflow"})
+                    p.terminate()
+                    time.sleep(number_of_tasks*10)
+                    ret_code = p.poll()
+                    if ret_code is None:
+                        print("ERROR: can't terminate workflow!", wf)
+                        p.kill()
+                        return Error(1, {"message": "ERROR: can't stop workflow, killing it"})
     if ret_code is not None:
         if "pid" in os.listdir(path):
             os.remove(path + "/pid")
@@ -214,7 +214,7 @@ def stop(data) -> Result:
 def status(data) -> Result:
     path = "/opt/spa/data/" + data["project"]
     if "task" in data:
-        path+= "/" + data["workflow"] + "/" + data["task"]
+        path += "/" + data["workflow"] + "/" + data["task"]
         with open(path + "task.json", "r") as fp:
             st = json.load(fp)["task"]["info"]["status"]
         return Success({"answer": st})
@@ -224,7 +224,7 @@ def status(data) -> Result:
             wf_tasks = json.load(fp)
         st = {}
         for t in wf_tasks:
-            st[t["name"]]= t["status"]
+            st[t["name"]] = t["status"]
         return Success({"answer": json.dumps(st)})
     else:
         return Error(1, {"message": "define workflow for status examination"})
