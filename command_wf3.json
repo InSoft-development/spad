@@ -18,12 +18,12 @@
 
 									{
 										"id": 3,
-										"name": "t14",
+										"name": "t13",
 										"place": 0,
 										"exec": "parallel",
 										"function": "simple",
 										"params": [
-											"5"
+											"25"
 										]
 									}
 								]

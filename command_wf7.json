@@ -1,6 +1,6 @@
 {
 	"jsonrpc": "2.0",
-	"method": "create",
+	"method": "delete",
 	"id": 1,
 	"params": [
 		{
@@ -13,20 +13,11 @@
 						"workflows": [
 							{
 								"id": 1,
-								"name": "wf1",
-								"tasks": [
-
-									{
-										"id": 3,
-										"name": "t14",
-										"place": 0,
-										"exec": "parallel",
-										"function": "simple",
-										"params": [
-											"5"
-										]
-									}
-								]
+								"name": "wf1"
+							},
+							{
+								"id": 2,
+								"name": "wf2"
 							}
 						]
 					},

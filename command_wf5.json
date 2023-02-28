@@ -17,18 +17,18 @@
 								"tasks": [
 									{
 										"id": 1,
-										"name": "t11",
+										"name": "t15",
 										"place": 1,
 										"exec": "parallel",
 										"function": "simple",
 										"params": [
-											"0"
+											"20"
 										]
 									},
 									{
 										"id": 2,
-										"name": "t12",
-										"place": 2,
+										"name": "t16",
+										"place": 0,
 										"exec": "await",
 										"function": "simple",
 										"params": [
@@ -43,8 +43,8 @@
 								"tasks": [
 									{
 										"id": 1,
-										"name": "t21",
-										"place": 1,
+										"name": "t23",
+										"place": 0,
 										"exec": "parallel",
 										"function": "simple",
 										"params": [
@@ -53,7 +53,7 @@
 									},
 									{
 										"id": 2,
-										"name": "t22",
+										"name": "t24",
 										"place": 2,
 										"exec": "await",
 										"function": "echo",

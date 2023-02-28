@@ -1,6 +1,6 @@
 {
 	"jsonrpc": "2.0",
-	"method": "create",
+	"method": "delete",
 	"id": 1,
 	"params": [
 		{
@@ -22,7 +22,7 @@
 										"exec": "parallel",
 										"function": "simple",
 										"params": [
-											"0"
+											"20"
 										]
 									},
 									{
@@ -32,7 +32,7 @@
 										"exec": "await",
 										"function": "simple",
 										"params": [
-											"5"
+											"25"
 										]
 									}
 								]

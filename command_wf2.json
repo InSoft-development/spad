@@ -1,6 +1,6 @@
 {
 	"jsonrpc": "2.0",
-	"method": "create",
+	"method": "update",
 	"id": 1,
 	"params": [
 		{
@@ -15,12 +15,21 @@
 								"id": 1,
 								"name": "wf1",
 								"tasks": [
-
 									{
-										"id": 3,
-										"name": "t13",
-										"place": 0,
+										"id": 1,
+										"name": "t11",
+										"place": 1,
 										"exec": "parallel",
+										"function": "simple",
+										"params": [
+											"20"
+										]
+									},
+									{
+										"id": 2,
+										"name": "t12",
+										"place": 2,
+										"exec": "await",
 										"function": "simple",
 										"params": [
 											"25"
