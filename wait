@@ -1,0 +1,32 @@
+#!/bin/bash
+i=5
+if [ -n "$1" ]
+then
+	i=$1
+fi
+
+while [ $i -gt 0 ]
+do
+	echo $i
+	sleep 1
+	i=$[ $i - 1 ]
+done
+
+curl -X POST http://localhost:5000 -d @/home/matvey/ptoject/spa/spad/command_wait_t13.json
+
+while [ $i -gt 0 ]
+do
+	echo $i
+	sleep 1
+	i=$[ $i - 1 ]
+done
+
+curl -X POST http://localhost:5000 -d @/home/matvey/ptoject/spa/spad/command_unwait_t13.json
+
+while [ $i -gt 0 ]
+do
+	echo $i
+	sleep 1
+	i=$[ $i - 1 ]
+done
+
