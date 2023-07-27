@@ -47,8 +47,8 @@ if __name__ == '__main__':
             params["workflow"] = args.workflow
         if args.task is not None:
             params["task"] = args.task
-    print(params)
+    #print(params)
     data = {"jsonrpc": "2.0", "method": args.action, "id": 1, "params": [params]}
-    print(data)
+    #print(data)
     r = requests.post(server_address, json=data)
-    print(r.text)
+    print(json.dumps(r.json(), indent=4))

@@ -398,8 +398,6 @@ def stop(data) -> Result:
         workflow_processes.pop(data["workflow"])
         return ret
 
-
-
 @method
 def status(data) -> Result:
     path = "/opt/spa/data/" + data["project"]
