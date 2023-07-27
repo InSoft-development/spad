@@ -391,7 +391,7 @@ def status(data) -> Result:
     if "task" in data:
         path += "/" + data["workflow"] + "/" + data["task"]
         with open(path + "/task.json", "r") as fp:
-            st = json.load(fp)["task"]["info"]["status"]
+            st = json.load(fp)["info"]["status"]
         return Success({"answer": st})
     elif "workflow" in data:
         path += "/" + data["workflow"]
