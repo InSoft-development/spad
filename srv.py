@@ -128,6 +128,18 @@ class ExecutionQueue(object):
             json.dump(self.tasks, wf_json_file, indent=3)
         print("wf saved")
 
+@method
+def select_project(project) -> Result:
+    global project_name
+    if len(workflow_processes) > 0 and project_name != "":
+        return Error(1, {"message": "project " + project_name + " is executing now"})
+
+    path = "/opt/spa/data/" + project
+    if not os.path.exists(path):
+        return Error(1, {"message": "project doesn't exist"})
+
+    project_name = project
+    return Success({"answer": "project " + project_name + " selected"})
 
 @method
 def create(data) -> Result:
@@ -146,6 +158,9 @@ def create(data) -> Result:
         except OSError:
             return Error(1, {"message": "project tree not created"})
     workflows_q = {}
+    for workflow_json in project["workflows"]:
+        if workflow_processes[workflow_json["name"]].poll() is None:
+            return Error(1, {"message": "this workflow is executing now"})
     for workflow_json in project["workflows"]:
         path = "/opt/spa/data/" + project_name + "/" + workflow_json["name"]
         old_tasks = []
@@ -521,7 +536,7 @@ def kill_all():
 def restart_after_death():
     path = "/opt/spa/data/"
     projects = os.listdir(path)
-    for project in projects:
+    for project in projects: #Непонятно, что будет, если у нас был упавший проект на файловой системе - а другой был запущен на момент выключения - и теперь у на сдва упавших проекта
         wfs = os.listdir(path+project)
         for wf in wfs:
             files = os.listdir(path+project+"/"+wf)

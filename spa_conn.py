@@ -5,13 +5,14 @@ import json
 
 def parse_args():
     parser = argparse.ArgumentParser(description="execute requests to spa server")
-    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump"],
+    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump", "select_project", "file"],
                         help="choose needed action")
     parser.add_argument("--json", "-j", type=str, help="parameters in json format")
     parser.add_argument("--json_file","--json-file", "-f", type=str, help="parameters in json file")
     parser.add_argument("--project", "-p", type=str, help="specify project name")
     parser.add_argument("--workflow","--wf", "-w", type=str, help="specify workflow name")
     parser.add_argument("--task", "-t", type=str, help="specify task name")
+
     return parser.parse_args()
 
 
