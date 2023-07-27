@@ -444,7 +444,7 @@ def dump(data) -> Result:
     path = "/opt/spa/data/" + data["project"]
     if "workflow" in data:
         if "task" in data:
-            path += "/" + data["workflow"] + "/" + data["task"]
+            path += "/" + data["workflow"] + "/" + data["task"] + "/"
             with open(path + "task.json", "r") as fp:
                 st = json.load(fp)
             return Success({"answer": st})
@@ -452,15 +452,15 @@ def dump(data) -> Result:
             path += "/" + data["workflow"]
             with open(path + "/workflow.json", "r") as fp:
                 wf_tasks = json.load(fp)
-            return Success({"answer": json.dumps(wf_tasks)})
+            return Success({"answer": wf_tasks})
     else:
         pr_j = {}
         wfs = os.listdir(path)
         for wf in wfs:
-            path += "/" + wf
-            with open(path + "/workflow.json", "r") as fp:
+            path_w = path + "/" + wf
+            with open(path_w + "/workflow.json", "r") as fp:
                 pr_j[wf] = json.load(fp)
-        return Success({"answer": json.dumps(pr_j)})
+        return Success({"answer": pr_j})
 
 
 # !FIXME Тут делаем метод записи статуса в Queue
