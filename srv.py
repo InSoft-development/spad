@@ -559,15 +559,17 @@ def dump(data) -> Result:
 def move_file(f1,f2) -> Result:
     m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
     m2 = re.match(r'/opt/spa/bin/',f2)
-    if not m1 and not m2:
+    m3 = re.match(r'/home', f2)
+    if not m1 and not m2 and not m3:
         return Error(1, {"message": "move only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
-                                    " or into /opt/spa/bin"})
+                                    " or into /opt/spa/bin or home"})
     try:
         if not os.path.isfile(f1):
             return Error(1, {"message": "no file " + f1})
         m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
         m2 = re.match(r'/opt/spa/bin/.+',f2)
-        if not m1 and not m2:
+        m3 = re.match(r'/home.+', f2)
+        if not m1 and not m2 and not m3:
             f2 += f1
         print("move ", f1," ",f2)
         os.rename(f1, f2)
@@ -579,15 +581,17 @@ def move_file(f1,f2) -> Result:
 def link_file(f1,f2) -> Result:
     m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
     m2 = re.match(r'/opt/spa/bin/',f2)
-    if not m1 and not m2:
+    m3 = re.match(r'/home',f2)
+    if not m1 and not m2 and not m3:
         return Error(1, {"message": "link only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
-                                    " or into /opt/spa/bin"})
+                                    " or into /opt/spa/bin or into home"})
     try:
         if not os.path.isfile(f1):
             return Error(1, {"message": "no file " + f1})
         m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
         m2 = re.match(r'/opt/spa/bin/.+',f2)
-        if not m1 and not m2:
+        m3 = re.match(r'/home.+', f2)
+        if not m1 and not m2 and not m3:
             f2 += f1
         print("move ", f1," ",f2)
         os.symlink(f1, f2)
