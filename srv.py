@@ -414,6 +414,13 @@ def stop(data) -> Result:
                 "workflow": data["project"]["workflows"][0]["name"]}
 
     print("current wfs:", workflow_processes.keys())
+
+    global project_name
+    if "workflow" not in data and "project" in data:
+        if project_name == "" or project_name == data["project"]:
+            kill_all()
+            return Success({"answer": "everything is stopped"})
+
     if data["workflow"] not in workflow_processes:
         return Error(1, {"message": "this workflow is not executing now"})
     else:
