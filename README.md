@@ -148,7 +148,10 @@ _spa_сonn file --link < file1> < file2 >_
 9. Запускаем в параллельном фоновом потоке скрипт alarms.py осуществляющий слежение за ситуациями аномалии по результатам постобработки.
 10. Запускаем в фоне веб-приложение мониторинга run_dashboard.py
 
-Для этого надо создать три workflow файла:
+Клонируем свой git-репозиторий на сервер в /home/user/my_method/
+Все исполняемые файлы - кладем симлинками в /opt/spa/bin/
+
+Дальше нам надо создать три workflow файла:
 1. demo.json - запуск фронтенда в виде веб-сервера.
 ```
 {
@@ -266,20 +269,20 @@ _spa_сonn file --link < file1> < file2 >_
 ```
 
 После чего выполнить следующие команды:
-1. _spa_conn create --file demo.json_
-2. _spa_conn create --file learn.json_
-3. _spa_conn create --file analyse.json_
-4. _spa_conn run --project my_project --wf demo_
+1. _spa_conn create --file demo.json_ #создаем воркфлоу
+2. _spa_conn create --file learn.json_ #создаем воркфлоу
+3. _spa_conn create --file analyse.json_ #создаем воркфлоу
+4. _spa_conn run --project my_project --wf demo_ #запуск первого воркфлоу
 5. Изучаем данные в веб странице у себя локально, записываем пометки по разметке в текстовый файл у себя локально
-6. _spa_conn stop --wf demo_
-7. _spa_conn file --upload intervals.json_
-8. _spa_conn file --move intervals.json /home/my_user/intervals_v1.json_
-9. _spa_conn file --link /home/my_user/intervals_v1.json /opt/spa/data/my_project/learn/learn_task/intervals.json_
-10. _spa_conn run --wf learn_
+6. _spa_conn stop --wf demo_ #останов
+7. _spa_conn file --upload intervals.json_ #закидываем наш файлик
+8. _spa_conn file --move intervals.json /home/my_user/intervals_v1.json_ #перемещаем его на удаленной машине в home
+9. _spa_conn file --link /home/my_user/intervals_v1.json /opt/spa/data/my_project/learn/learn_task/intervals.json_ #кладем ссылку на него в нужную папку
+10. _spa_conn run --wf learn_ #запуск обучения
 11. ожидаем окончания, периодически посматривая статус следующей командой
 12. _spa_conn status --wf learn_
 13. когда исполнение окончилось успешно - переходим к анализу
-14. _spa_conn run --wf analyse_
+14. _spa_conn run --wf analyse_ #запуск онлайн анализа со всем множеством скриптов
 15. производим мониторинг работы через веб интерфейс в run_dashboard
 
 В дальнейшем - мы хотим объединить все workflow в один, когда, допустим, автоматизировали отбор интервалов - и написали простейшие баш скрипты для перекладывания файла интервалов весов в home - с созданием симлинка в нужные места после обучения: mv1.sh, mv2.sh
