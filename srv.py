@@ -557,14 +557,17 @@ def dump(data) -> Result:
 
 @method
 def move_file(f1,f2) -> Result:
-    m = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
-    if not m:
-        return Error(1, {"message": "move only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"})
+    m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
+    m2 = re.match(r'/opt/spa/bin/',f2)
+    if not m1 and not m2:
+        return Error(1, {"message": "move only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
+                                    " or into /opt/spa/bin"})
     try:
         if not os.path.isfile(f1):
             return Error(1, {"message": "no file " + f1})
-        m = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
-        if not m:
+        m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
+        m2 = re.match(r'/opt/spa/bin/.+',f2)
+        if not m1 and not m2:
             f2 += f1
         print("move ", f1," ",f2)
         os.rename(f1, f2)
@@ -572,6 +575,25 @@ def move_file(f1,f2) -> Result:
     except OSError as err:
         return Error(1, {"message": "can not move file: " + str(err)})
 
+@method
+def link_file(f1,f2) -> Result:
+    m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
+    m2 = re.match(r'/opt/spa/bin/',f2)
+    if not m1 and not m2:
+        return Error(1, {"message": "link only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
+                                    " or into /opt/spa/bin"})
+    try:
+        if not os.path.isfile(f1):
+            return Error(1, {"message": "no file " + f1})
+        m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
+        m2 = re.match(r'/opt/spa/bin/.+',f2)
+        if not m1 and not m2:
+            f2 += f1
+        print("move ", f1," ",f2)
+        os.symlink(f1, f2)
+        return Success({"answer": f2 + " -> " + f1})
+    except OSError as err:
+        return Error(1, {"message": "can not link file: " + str(err)})
 
 # !FIXME Тут делаем метод записи статуса в Queue
 # Хмм... А он не нужен: такого файла нет. Это файл воркфлоу, и им после создания владеет процесс, исполняющий воркфлоу

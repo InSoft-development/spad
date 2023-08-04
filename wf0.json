@@ -1,27 +1,26 @@
 {
-    "project":
-        {
-            "id": 1,
-            "name": "pr1",
-            "workflows": [
-                {
-                    "id": 1,
-                    "name": "wf1",
-                    "tasks": [
-                        {
-                            "id": 1,
-                            "name": "t11",
-                            "place": 1,
-                            "exec": "parallel",
-                            "function": "simple",
-                            "params": [
-                                "0"
-                            ],
-                            "status": "something"
-                        }
-                    ]
-                }
-            ]
-        }
+    "project": {
+        "id": 1,
+        "name": "pr1",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "wf1",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "t11",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "simple",
+                        "params": [
+                            "0"
+                        ],
+                        "status": "something"
+                    }
+                ]
+            }
+        ]
+    }
 }
 

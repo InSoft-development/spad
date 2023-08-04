@@ -14,8 +14,13 @@ def parse_args():
     parser.add_argument("--workflow","--wf", "-w", type=str, help="specify workflow name")
     parser.add_argument("--task", "-t", type=str, help="specify task name")
     parser.add_argument("--upload", "-u", type=str, help="local file to upload to server (for using with file only)")
-    parser.add_argument("--download", "-d", type=str, help="remote file to upload on local machine (for using with file only)")
-    parser.add_argument("--move", "-m", type=str, nargs=2, help="move uploaded file into some place in /opt/spa/data folder (for using with file only)")
+    parser.add_argument("--download", "-d", type=str,
+                        help="remote file to upload on local machine (for using with file only)")
+    parser.add_argument("--move", "-m", type=str, nargs=2,
+                        help="move remote file into /opt/spa/data/<project>/<wf>/<task> or /opt/spa/bin folder")
+    parser.add_argument("--link", "-l", type=str, nargs=2,
+                        help="create symlink of remote file into /opt/spa/data/<project>/<wf>/<task> or /opt/spa/bin folder")
+
     return parser.parse_args()
 
 
@@ -68,6 +73,10 @@ if __name__ == '__main__':
                     print("file downloaded: ", local_filename)
         elif args.move is not None:
             data = {"jsonrpc": "2.0", "method": "move_file", "id": 1, "params": [args.move[0],args.move[1]]}
+            r = requests.post(server_address, json=data)
+            print(json.dumps(r.json(), indent=3))
+        elif args.link is not None:
+            data = {"jsonrpc": "2.0", "method": "link_file", "id": 1, "params": [args.link[0],args.link[1]]}
             r = requests.post(server_address, json=data)
             print(json.dumps(r.json(), indent=3))
     else:
