@@ -133,6 +133,12 @@ def select_project(project) -> Result:
     global project_name
     if len(workflow_processes) > 0 and project_name != "":
         return Error(1, {"message": "project " + project_name + " is executing now"})
+    if type(project) is dict:
+        if "project" in project:
+            project = project["project"]
+            if type(project) is dict:
+                if "name" in project:
+                    project = project["name"]
 
     path = "/opt/spa/data/" + project
     if not os.path.exists(path):
@@ -146,8 +152,8 @@ def create(data) -> Result:
     print("CREATE DATA:", data)
     # data = data[0]
     global project_name
-    project_name = data["context"]["project"]["name"]
-    project = data["context"]["project"]
+    project_name = data["project"]["name"]
+    project = data["project"]
     # for now only one project exists
     # with data["context"]["projects"][0] as project:
     path = "/opt/spa/data/" + project_name
@@ -159,7 +165,7 @@ def create(data) -> Result:
             return Error(1, {"message": "project tree not created"})
     workflows_q = {}
     for workflow_json in project["workflows"]:
-        if workflow_processes[workflow_json["name"]].poll() is None:
+        if workflow_json["name"] in workflow_processes.keys() is None:
             return Error(1, {"message": "this workflow is executing now"})
     for workflow_json in project["workflows"]:
         path = "/opt/spa/data/" + project_name + "/" + workflow_json["name"]
@@ -210,8 +216,8 @@ def delete(data) -> Result:
     tasks_to_delete = {}
     workflows_q = {}
     global project_name
-    project_name = data["context"]["project"]["name"]
-    project = data["context"]["project"]
+    project_name = data["project"]["name"]
+    project = data["project"]
     # for now only one project exists
     # with data["context"]["projects"][0] as project:
     path = "/opt/spa/data/" + project_name
@@ -311,11 +317,21 @@ def update(data) -> Result:
 
 @method
 def run(data) -> Result:
+    if "project" in data and type(data["project"]) is dict: #json tree as input
+        if len(data["project"]["workflows"]) != 1:
+            return Error(1, {"message": "run not single one workflow"})
+        data = { "project" : data["project"]["name"],
+                 "workflow":data["project"]["workflows"][0]["name"]}
+
     global project_name
     if project_name == "":
-        project_name = data["project"]
+        if "project" in data:
+            project_name = data["project"]
+        else:
+            return Error(1, {"message": "project not specified"})
     elif project_name != data["project"]:
         Error(1, {"message": "Only "+project_name + " project"})
+
     path = "/opt/spa/data/" + data["project"] + "/" + data["workflow"]
     if data["workflow"] in workflow_processes:
         if workflow_processes[data["workflow"]].poll() is None:
@@ -390,21 +406,50 @@ def kill_wf(wf):
 
 @method
 def stop(data) -> Result:
+    if "project" in data and type(data["project"]) is dict:  # json tree as input
+        if len(data["project"]["workflows"]) != 1:
+            return Error(1, {"message": "stop not single one workflow"})
+        data = {"project": data["project"]["name"],
+                "workflow": data["project"]["workflows"][0]["name"]}
+
     print("current wfs:", workflow_processes.keys())
     if data["workflow"] not in workflow_processes:
         return Error(1, {"message": "this workflow is not executing now"})
     else:
         ret = kill_wf(data["workflow"])
-        workflow_processes.pop(data["workflow"])
+        if data["workflow"] in workflow_processes: #it can still be there
+            workflow_processes.pop(data["workflow"])
         return ret
 
 @method
 def status(data) -> Result:
+    if "project" in data and type(data["project"]) is dict: #json tree as input
+        if len(data["project"]["workflows"]) > 1:
+            return Error(1, {"message": "status not of single workflow"})
+        data_new = {"project": data["project"]["name"],
+                "workflow": data["project"]["workflows"][0]["name"]}
+        if "tasks" in data["project"]["workflows"][0] and len(data["project"]["workflows"][0]["tasks"]) != 1:
+            return Error(1, {"message": "status not of single task"})
+        else:
+            data_new["task"] = data["project"]["workflows"][0]["tasks"][0]["name"]
+        data = data_new
+
+    global project_name
+    if "project" not in data:
+        if project_name != "":
+            data["project"] = project_name
+        else:
+            return Error(1, {"message": "project not specified"})
+
     path = "/opt/spa/data/" + data["project"]
     if "task" in data:
-        path += "/" + data["workflow"] + "/" + data["task"]
-        with open(path + "/task.json", "r") as fp:
-            st = json.load(fp)["info"]["status"]
+        if type(data["task"]) is not list:
+            data["task"] = [data["task"]]
+        st = []
+        for task in data["task"]:
+            p = path + "/" + data["workflow"] + "/" + task
+            with open(p + "/task.json", "r") as fp:
+                st.append(json.load(fp)["info"]["status"])
         return Success({"answer": st})
     elif "workflow" in data:
         path += "/" + data["workflow"]
@@ -413,34 +458,72 @@ def status(data) -> Result:
         st = {}
         for t in wf_tasks:
             st[t["name"]] = t["status"]
-        return Success({"answer": json.dumps(st)})
+        return Success({"answer": st})
     else:
         return Error(1, {"message": "define workflow for status examination"})
 
 @method
 def set_status(data) -> Result:
+    if "project" in data and type(data["project"]) is dict: #json tree as input
+        if len(data["project"]["workflows"]) != 1:
+            return Error(1, {"message": "set_status not in single workflow"})
+        if "tasks" in data["project"]["workflows"][0]:
+            if len(data["project"]["workflows"][0]["tasks"]) != 1:
+                return Error(1, {"message": "set_status not in single task"})
+            data = {"project": data["project"]["name"],
+                "workflow": data["project"]["workflows"][0]["name"],
+                "task": data["project"]["workflows"][0]["tasks"][0]["name"],
+                "status":data["project"]["workflows"][0]["tasks"][0]["status"]}
+        else:
+            return Error(1, {"message": "define task for status set"})
+
+    global project_name
+    if "project" not in data:
+        if project_name != "":
+            data["project"] = project_name
+        else:
+            return Error(1, {"message": "project not specified"})
+
     path = "/opt/spa/data/" + data["project"]
     if "task" in data:
         path += "/" + data["workflow"] + "/" + data["task"]
         with open(path + "/task.json", "r") as task_json_file:
             task_json = json.load(task_json_file)
-            task_json["task"]["info"]["status"] = data["task"]["info"]["status"]
+            task_json["info"]["status"] = data["status"]
         with open(path + "/task.json", "w") as task_json_file:
             json.dump(task_json, task_json_file, indent=3)
+        path = "/opt/spa/data/" + data["project"]
+        path += "/" + data["workflow"]
+        with open(path + "/workflow.json", "r") as wf_json_file:
+            wf_json = json.load(wf_json_file)
+            i = [i for i in range(len(wf_json)) if wf_json[i]["name"] == data["task"]][0]
+            wf_json[i]["status"] = data["status"]
+        with open(path + "/workflow.json", "w") as wf_json_file:
+            json.dump(wf_json, wf_json_file, indent=3)
         return Success({"answer": task_json})
-    # elif "workflow" in data:
-    #     path += "/" + data["workflow"]
-    #     with open(path + "/workflow.json", "r") as fp:
-    #         wf_tasks = json.load(fp)
-    #     st = {}
-    #     for t in wf_tasks:
-    #         st[t["name"]] = t["status"]
-    #     return Success({"answer": json.dumps(st)})
     else:
         return Error(1, {"message": "define task for status set"})
 
 @method
 def dump(data) -> Result:
+    if "project" in data and type(data["project"]) is dict: #json tree as input
+        if len(data["project"]["workflows"]) != 1:
+            return Error(1, {"message": "dump not single workflow"})
+        data_new = {"project": data["project"]["name"],
+                "workflow": data["project"]["workflows"][0]["name"]}
+        if "tasks" in data["project"]["workflows"][0] and len(data["project"]["workflows"][0]["tasks"]) != 1:
+            return Error(1, {"message": "dump not single task"})
+        else:
+            data_new["task"] = data["project"]["workflows"][0]["tasks"][0]["name"]
+        data = data_new
+
+    global project_name
+    if "project" not in data:
+        if project_name != "":
+            data["project"] = project_name
+        else:
+            return Error(1, {"message": "project not specified"})
+
     path = "/opt/spa/data/" + data["project"]
     if "workflow" in data:
         if "task" in data:

@@ -12,7 +12,6 @@ def parse_args():
     parser.add_argument("--project", "-p", type=str, help="specify project name")
     parser.add_argument("--workflow","--wf", "-w", type=str, help="specify workflow name")
     parser.add_argument("--task", "-t", type=str, help="specify task name")
-
     return parser.parse_args()
 
 
@@ -32,14 +31,15 @@ if __name__ == '__main__':
         params = json.loads(args.json)
     elif args.json_file is not None:
         if args.project is not None:
-            print("You can't specify project, if using json")
-        if args.json_file is not None:
-            print("You can't specify json-file, if using json")
+            print("You can't specify project, if using json-file")
+        if args.json is not None:
+            print("You can't specify json, if using json-file")
         if args.workflow is not None:
-            print("You can't specify workflow, if using json")
+            print("You can't specify workflow, if using json-file")
         if args.task is not None:
-            print("You can't specify task, if using json")
-        params = json.load(args.json_file)
+            print("You can't specify task, if using json-file")
+        with open(args.json_file, "r") as fp:
+            params = json.load(fp)
     else:
         if args.project is not None:
             params["project"] = args.project
@@ -47,6 +47,7 @@ if __name__ == '__main__':
             params["workflow"] = args.workflow
         if args.task is not None:
             params["task"] = args.task
+
     #print(params)
     data = {"jsonrpc": "2.0", "method": args.action, "id": 1, "params": [params]}
     #print(data)
