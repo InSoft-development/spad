@@ -19,69 +19,30 @@
 Пример
 ```
 {
-    "context": {
-        "project":
+    "project": {
+        "id": 1,
+        "name": "pr1",
+        "workflows": [
             {
                 "id": 1,
-                "name": "pr1",
-                "workflows": [
+                "name": "wf1",
+                "tasks": [
                     {
                         "id": 1,
-                        "name": "wf1",
-                        "tasks": [
-                            {
-                                "id": 1,
-                                "name": "t11",
-                                "place": 1,
-                                "exec": "parallel",
-                                "function": "simple",
-                                "params": [
-                                    "0"
-                                ]
-                            },
-                            {
-                                "id": 2,
-                                "name": "t12",
-                                "place": 2,
-                                "exec": "await",
-                                "function": "simple",
-                                "params": [
-                                    "5"
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "id": 2,
-                        "name": "wf2",
-                        "tasks": [
-                            {
-                                "id": 1,
-                                "name": "t21",
-                                "place": 1,
-                                "exec": "parallel",
-                                "function": "simple",
-                                "params": [
-                                    "10"
-                                ]
-                            },
-                            {
-                                "id": 2,
-                                "name": "t22",
-                                "place": 2,
-                                "exec": "await",
-                                "function": "echo",
-                                "params": [
-                                    "5"
-                                ]
-                            }
-                        ]
+                        "name": "t11",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "simple",
+                        "params": [
+                            "0"
+                        ],
+                        "status": "something"
                     }
                 ]
             }
+        ]
     }
 }
-
 ```
 
 # spa_conn
@@ -166,4 +127,267 @@ _spa_сonn file --download < file >_
 
 _spa_сonn file --move < file1> < file2 >_
 
-Перемещение файла. Если не указано путей - из дирректории, где работает spad в дирректорию /opt/spa/data/<project>)
+Перемещение файла. Можно перемещать только в дирректории тасков (/opt/spa/data/<pr>/<wf>/<t>) или в /opt/spa/bin/ . Таким образом рекомендуется закидывать конфиги и веса после обучения в целевые папки, где будут запускаться исполняемые файлы, если эти файлы не планируется помещать под систему контроля версий - а генерировать каждый раз заново.
+
+_spa_сonn file --link < file1> < file2 >_
+
+Создание символической ссылки f2 -> f1. Можно создавать только в дирректориях тасков (/opt/spa/data/<pr>/<wf>/<t>) или в /opt/spa/bin/. Рекомендуется таким образом использовать ссылки на наши исполняемые файлы и прочие модули питона из папок, содержащих git репзитории - для использования их в spad. Так же таким образом рекомендуется закидывать файлы с ценными конфигами или весами, которые предполагается переиспользовать впоследствии, чтобы не создавать их неучтенных копий.
+
+# Пример работы
+
+Допустим, у нас есть алгоритм анализа со следующими шагами:
+0. Предполагаем, что данные уже лежат в БД, доступ до них прописан в самих скриптах - spad не система прямой работы с данными
+1. Запустить скрипт demo.py, который выдаст некоторый демонстрационный режим для первичной обработки данных
+2. По изученному, мы руками у себя создаем файл intervals.json с ыделенными интервалами обучения
+3. Закидываем файл на машину
+4. Запускаем скрипт learn.py, который обучает наш метод и на выходе генерирует файл weight.json
+5. Перемещаем полученный файл к себе в /home для дальнейшей повторной работы с ним
+6. Запускаем в параллельном фоновом потоке скрипт pred.py осуществляющий "на лету" предобработку данных, идущих потоком в БД
+7. Запускаем в параллельном фоновом потоке скрипт method.py, осуществляющий анализ предобработанных данных
+8. Запускаем в параллельном фоновом потоке скрипт post.py осуществляющий постобработку проанализированных данных
+9. Запускаем в параллельном фоновом потоке скрипт alarms.py осуществляющий слежение за ситуациями аномалии по результатам постобработки.
+10. Запускаем в фоне веб-приложение мониторинга run_dashboard.py
+
+Для этого надо создать три workflow файла:
+1. demo.json - запуск фронтенда в виде веб-сервера.
+```
+{
+    "project": {
+        "id": 1,
+        "name": "my_project",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "demo",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "demo",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "demo.py",
+                        "params": []
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+3. learn.json - запускаем, ждем, отрабатывает, сам останавливается
+```
+{
+    "project": {
+        "id": 1,
+        "name": "my_project",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "learn",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "learn",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "learn.py",
+                        "params": [
+                            "-w",
+                            "weight.json"
+                        ],
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+5. analyse.json - запускает последовательно все шаги анализа - отстреливая их в параллельные потоки
+```
+{
+    "project": {
+        "id": 1,
+        "name": "my_project",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "analyse",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "pred",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "pred.py",
+                        "params": [],
+                    },
+                    {
+                        "id": 1,
+                        "name": "method",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "method.py",
+                        "params": [
+                            "-w",
+                            "weight.json"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "post",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "post.py",
+                        "params": [],
+                    },
+                    {
+                        "id": 1,
+                        "name": "alarms",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "alarms.py",
+                        "params": [
+                            "96"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "dashboard",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "run_dashboard.py",
+                        "params": [],
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+После чего выполнить следующие команды:
+1. _spa_conn create --file demo.json_
+2. _spa_conn create --file learn.json_
+3. _spa_conn create --file analyse.json_
+4. _spa_conn run --project my_project --wf demo_
+5. Изучаем данные в веб странице у себя локально, записываем пометки по разметке в текстовый файл у себя локально
+6. _spa_conn stop --wf demo_
+7. _spa_conn file --upload intervals.json_
+8. _spa_conn file --move intervals.json /home/my_user/intervals_v1.json_
+9. _spa_conn file --link /home/my_user/intervals_v1.json /opt/spa/data/my_project/learn/learn_task/intervals.json_
+10. _spa_conn run --wf learn_
+11. ожидаем окончания, периодически посматривая статус следующей командой
+12. _spa_conn status --wf learn_
+13. когда исполнение окончилось успешно - переходим к анализу
+14. _spa_conn run --wf analyse_
+15. производим мониторинг работы через веб интерфейс в run_dashboard
+
+В дальнейшем - мы хотим объединить все workflow в один, когда, допустим, автоматизировали отбор интервалов - и написали простейшие баш скрипты для перекладывания файла интервалов весов в home - с созданием симлинка в нужные места после обучения: mv1.sh, mv2.sh
+```
+{
+    "project": {
+        "id": 1,
+        "name": "my_project",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "learn_and_run",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "find_intervals",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "intervals_automation.py",
+                        "params": [
+                            "intervals.json"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "mv_intervals",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "mv1.sh",
+                        "params": [
+                            "weight.json"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "learn",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "learn.py",
+                        "params": [
+                            "-w",
+                            "weight.json"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "mv_weights",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "mv2.sh",
+                        "params": [
+                            "weight.json"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "pred",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "pred.py",
+                        "params": [],
+                    },
+                    {
+                        "id": 1,
+                        "name": "method",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "method.py",
+                        "params": [
+                            "-w",
+                            "weight.json"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "post",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "post.py",
+                        "params": [],
+                    },
+                    {
+                        "id": 1,
+                        "name": "alarms",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "alarms.py",
+                        "params": [
+                            "96"
+                        ],
+                    },
+                    {
+                        "id": 1,
+                        "name": "dashboard",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "run_dashboard.py",
+                        "params": [],
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+И запуск упрощается:
+
+_spa_conn create -f learn_and_run.json_
+_spa_conn run -p my_project -w learn_and_run_
+
+Но падает на втором таске - и нам приходится возвращаться к первому варианту, так как он стабильнее =)
