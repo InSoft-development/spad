@@ -12,6 +12,7 @@ import io
 import os
 import atexit
 import shutil
+import re
 
 workflow_processes = {}
 logs={}
@@ -460,7 +461,16 @@ def status(data) -> Result:
             st[t["name"]] = t["status"]
         return Success({"answer": st})
     else:
-        return Error(1, {"message": "define workflow for status examination"})
+        path = "/opt/spa/data/" + data["project"]
+        wfs = os.listdir(path)
+        wf_status = []
+        for wf in wfs:
+            files = os.listdir(path + "/" + wf)
+            if "pid" in files:
+                wf_status.append({wf: "running"})
+            else:
+                wf_status.append({wf: "not run"})
+        return Success({"answer": wf_status})
 
 @method
 def set_status(data) -> Result:
@@ -547,14 +557,16 @@ def dump(data) -> Result:
 
 @method
 def move_file(f1,f2) -> Result:
-    if "/opt/spa/data" not in f2:
-        if project_name != "":
-            f2 = "/opt/spa/data/" + project_name + "/" + f2
-        else:
-            return Error(1, {"message": "project not specified"})
+    m = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
+    if not m:
+        return Error(1, {"message": "move only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"})
     try:
         if not os.path.isfile(f1):
             return Error(1, {"message": "no file " + f1})
+        m = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
+        if not m:
+            f2 += f1
+        print("move ", f1," ",f2)
         os.rename(f1, f2)
         return Success({"answer": f1 + " moved to " + f2})
     except OSError as err:
