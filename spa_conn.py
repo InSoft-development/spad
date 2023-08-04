@@ -2,6 +2,7 @@
 import requests
 import argparse
 import json
+import shutil
 
 def parse_args():
     parser = argparse.ArgumentParser(description="execute requests to spa server")
@@ -12,6 +13,9 @@ def parse_args():
     parser.add_argument("--project", "-p", type=str, help="specify project name")
     parser.add_argument("--workflow","--wf", "-w", type=str, help="specify workflow name")
     parser.add_argument("--task", "-t", type=str, help="specify task name")
+    parser.add_argument("--upload", "-u", type=str, help="local file to upload to server (for using with file only)")
+    parser.add_argument("--download", "-d", type=str, help="remote file to upload on local machine (for using with file only)")
+    parser.add_argument("--move", "-m", type=str, nargs=2, help="move uploaded file into some place in /opt/spa/data folder (for using with file only)")
     return parser.parse_args()
 
 
@@ -47,9 +51,26 @@ if __name__ == '__main__':
             params["workflow"] = args.workflow
         if args.task is not None:
             params["task"] = args.task
-
-    #print(params)
-    data = {"jsonrpc": "2.0", "method": args.action, "id": 1, "params": [params]}
-    #print(data)
-    r = requests.post(server_address, json=data)
-    print(json.dumps(r.json(), indent=4))
+    if args.action == "file":
+        if args.upload is not None:
+            upload_files = {'file': open(args.upload,"rb")}
+            r = requests.post(server_address,files=upload_files)
+            print(r.text + "\nfile uploaded: " + args.upload)
+        elif args.download is not None:
+            local_filename = args.download.split('/')[-1]
+            with requests.get(server_address + "/" + args.download, stream=True) as r:
+                if r.status_code != requests.codes.ok:
+                    print("Error " + str(r.status_code))
+                else:
+                    with open(local_filename, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            f.write(chunk)
+                    print("file downloaded: ", local_filename)
+        elif args.move is not None:
+            data = {"jsonrpc": "2.0", "method": "move_file", "id": 1, "params": [args.move[0],args.move[1]]}
+            r = requests.post(server_address, json=data)
+            print(json.dumps(r.json(), indent=3))
+    else:
+        data = {"jsonrpc": "2.0", "method": args.action, "id": 1, "params": [params]}
+        r = requests.post(server_address, json=data)
+        print(json.dumps(r.json(), indent=3))

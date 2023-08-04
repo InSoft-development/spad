@@ -545,6 +545,21 @@ def dump(data) -> Result:
                 pr_j[wf] = json.load(fp)
         return Success({"answer": pr_j})
 
+@method
+def move_file(f1,f2) -> Result:
+    if "/opt/spa/data" not in f2:
+        if project_name != "":
+            f2 = "/opt/spa/data/" + project_name + "/" + f2
+        else:
+            return Error(1, {"message": "project not specified"})
+    try:
+        if not os.path.isfile(f1):
+            return Error(1, {"message": "no file " + f1})
+        os.rename(f1, f2)
+        return Success({"answer": f1 + " moved to " + f2})
+    except OSError as err:
+        return Error(1, {"message": "can not move file: " + str(err)})
+
 
 # !FIXME Тут делаем метод записи статуса в Queue
 # Хмм... А он не нужен: такого файла нет. Это файл воркфлоу, и им после создания владеет процесс, исполняющий воркфлоу
