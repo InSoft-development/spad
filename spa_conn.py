@@ -6,7 +6,7 @@ import shutil
 
 def parse_args():
     parser = argparse.ArgumentParser(description="execute requests to spa server")
-    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump", "select_project", "file"],
+    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump", "select_project", "file", "kill_all"],
                         help="choose needed action")
     parser.add_argument("--json", "-j", type=str, help="parameters in json format")
     parser.add_argument("--json_file","--json-file", "-f", type=str, help="parameters in json file")
@@ -56,6 +56,7 @@ if __name__ == '__main__':
             params["workflow"] = args.workflow
         if args.task is not None:
             params["task"] = args.task
+
     if args.action == "file":
         if args.upload is not None:
             upload_files = {'file': open(args.upload,"rb")}
@@ -79,6 +80,10 @@ if __name__ == '__main__':
             data = {"jsonrpc": "2.0", "method": "link_file", "id": 1, "params": [args.link[0],args.link[1]]}
             r = requests.post(server_address, json=data)
             print(json.dumps(r.json(), indent=3))
+    elif args.action == "kill_all":
+        data = {"jsonrpc": "2.0", "method": args.action, "id": 1, "params": []}
+        r = requests.post(server_address, json=data)
+        print(json.dumps(r.json(), indent=3))
     else:
         data = {"jsonrpc": "2.0", "method": args.action, "id": 1, "params": [params]}
         r = requests.post(server_address, json=data)

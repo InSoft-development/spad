@@ -667,12 +667,13 @@ class TestHttpServer(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(response.encode())
 
-
+@method
 def kill_all():
     print(workflow_processes)
     wf_list = set(workflow_processes.keys())
     for key in wf_list:
         kill_wf(key)
+    return Success({"answer": "everything is stopped"})
 
 def restart_after_death():
     path = "/opt/spa/data/"
