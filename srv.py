@@ -698,10 +698,9 @@ def handler_child_death(signum, frame):
 
 signal.signal(signal.SIGCHLD,handler_child_death)
 if __name__ == "__main__":
-    # !FIXME зарегить atend функцию по убийству воркфлоу всех и сделать
     #atexit.register(kill_all)
     restart_after_death()
     try:
-        HTTPServer(("localhost", 5000), TestHttpServer).serve_forever()
+        HTTPServer(("", 5000), TestHttpServer).serve_forever()
     finally:
         kill_all()
