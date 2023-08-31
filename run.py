@@ -36,7 +36,8 @@ class RunningTask(object):
         self.set_json_status("running")
         function_path = root_path + "/../bin/" + self.task_json()["task"]["function"]
         self.process = subprocess.Popen([function_path] + self.task_json()["task"]["params"],
-                                        stdout=self.log, stderr=self.err, encoding='utf-8')
+                                        stdout=self.log, stderr=self.err, encoding='utf-8',
+                                        cwd=self.path)
         self.pid = str(self.process.pid)
         open(self.path + "/pid", "w").write(self.pid)
 

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import re
 import requests
 import argparse
 import json
@@ -6,7 +7,8 @@ import shutil
 
 def parse_args():
     parser = argparse.ArgumentParser(description="execute requests to spa server")
-    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump", "select_project", "file", "kill_all"],
+    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump",
+                                           "select_project", "file", "kill_all"],
                         help="choose needed action")
     parser.add_argument("--json", "-j", type=str, help="parameters in json format")
     parser.add_argument("--json_file","--json-file", "-f", type=str, help="parameters in json file")
@@ -15,7 +17,7 @@ def parse_args():
     parser.add_argument("--task", "-t", type=str, help="specify task name")
     parser.add_argument("--upload", "-u", type=str, help="local file to upload to server (for using with file only)")
     parser.add_argument("--download", "-d", type=str,
-                        help="remote file to upload on local machine (for using with file only)")
+                        help="remote file to download to local machine (for using with file only)")
     parser.add_argument("--move", "-m", type=str, nargs=2,
                         help="move remote file into /opt/spa/data/<project>/<wf>/<task> or /opt/spa/bin folder")
     parser.add_argument("--link", "-l", type=str, nargs=2,
@@ -59,9 +61,20 @@ if __name__ == '__main__':
 
     if args.action == "file":
         if args.upload is not None:
-            upload_files = {'file': open(args.upload,"rb")}
-            r = requests.post(server_address,files=upload_files)
-            print(r.text + "\nfile uploaded: " + args.upload)
+            if args.project is None:
+                print("specify project")
+            if args.workflow is None:
+                print("specify workflow")
+            if args.task is None:
+                print("specify task")
+            if args.project is not None and args.workflow is not None and args.task is not None:
+                upload_files = {'file': open(args.upload,"rb")}
+                file_name = re.search("(\/)*[^\/]*$",a).group()[1:]
+                r = requests.post(server_address, files=upload_files)
+                task_path = "/opt/spa/data" + args.project + "/" + args.workflow + "/" + args.task + "/" + file_name
+                data = {"jsonrpc": "2.0", "method": "move_file", "id": 1, "params": [filename, task_path]}
+                r = requests.post(server_address, json=data)
+                print(r.text + "\nfile uploaded: " + task_path + file_name)
         elif args.download is not None:
             local_filename = args.download.split('/')[-1]
             with requests.get(server_address + "/" + args.download, stream=True) as r:
