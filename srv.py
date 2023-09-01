@@ -566,8 +566,9 @@ def dump(data) -> Result:
 def move_file(f1,f2) -> Result:
     m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
     m2 = re.match(r'/opt/spa/bin/',f2)
-    m3 = re.match(r'/home', f2)
-    if not m1 and not m2 and not m3:
+    m3 = re.match(r'/home/', f2)
+    m4 = re.match(r'file_buf',f2)
+    if not m1 and not m2 and not m3 and not m4:
         return Error(1, {"message": "move only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
                                     " or into /opt/spa/bin or home"})
     try:
@@ -575,9 +576,10 @@ def move_file(f1,f2) -> Result:
             return Error(1, {"message": "no file " + f1})
         m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
         m2 = re.match(r'/opt/spa/bin/.+',f2)
-        m3 = re.match(r'/home.+', f2)
-        if not m1 and not m2 and not m3:
-            f2 += f1
+        m3 = re.match(r'/home/.+', f2)
+        m4 = re.match(r'file_buf/.+',f2)
+        if not m1 and not m2 and not m3 and not m4:
+            f2 += f1 #mv to folder
         print("move ", f1," ",f2)
         os.rename(f1, f2)
         return Success({"answer": f1 + " moved to " + f2})
@@ -586,20 +588,9 @@ def move_file(f1,f2) -> Result:
 
 @method
 def cp_file(f1,f2) -> Result:
-    m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
-    m2 = re.match(r'/opt/spa/bin/',f2)
-    m3 = re.match(r'/home', f2)
-    if not m1 and not m2 and not m3:
-        return Error(1, {"message": "cp only into existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
-                                    " or into /opt/spa/bin or home"})
     try:
         if not os.path.isfile(f1):
             return Error(1, {"message": "no file " + f1})
-        m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/.+', f2)
-        m2 = re.match(r'/opt/spa/bin/.+',f2)
-        m3 = re.match(r'/home.+', f2)
-        if not m1 and not m2 and not m3:
-            f2 += f1
         print("cp ", f1," ",f2)
         shutil.copyfile(f1, f2)
         return Success({"answer": f1 + " moved to " + f2})
@@ -611,7 +602,8 @@ def rm_file(f2) -> Result:
     m1 = re.match(r'/opt/spa/data/[^/]+/[^/]+/[^/]+/',f2)
     m2 = re.match(r'/opt/spa/bin/',f2)
     m3 = re.match(r'/home', f2)
-    if not m1 and not m2 and not m3:
+    m4 = re.match(r'file_buf',f2)
+    if not m1 and not m2 and not m3 and not m4:
         return Error(1, {"message": "rm only from existing task dirs: /opt/spa/data/<project>/<wf>/<task>/"
                                     " or from /opt/spa/bin or home"})
     try:
