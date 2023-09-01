@@ -69,17 +69,21 @@ if __name__ == '__main__':
                 print("specify task")
             if args.project is not None and args.workflow is not None and args.task is not None:
                 upload_files = {'file': open(args.upload,"rb")}
-                file_name = args.download.split('/')[-1]
+                local_filename = str(re.search("[^/]*$",args.upload).group())
                 r = requests.post(server_address, files=upload_files)
-                task_path = "/opt/spa/data" + args.project + "/" + args.workflow + "/" + args.task + "/" + file_name
-                data = {"jsonrpc": "2.0", "method": "move_file", "id": 1, "params": [filename, task_path]}
+                print(r.text + "\nfile uploaded: " + local_filename)
+                task_path = "/opt/spa/data/" + args.project + "/" + args.workflow + "/" + args.task\
+                            + "/" + local_filename
+                data = {"jsonrpc": "2.0", "method": "move_file", "id": 1, "params": [local_filename, task_path]}
                 r = requests.post(server_address, json=data)
-                print(r.text + "\nfile uploaded: " + task_path + file_name)
+                print(r.text + "\nfile moved: " + task_path)
         elif args.download is not None:
-            local_filename = args.download.split('/')[-1]
-            data = {"jsonrpc": "2.0", "method": "cp_file", "id": 1, "params": [args.download, local_filename]}
+            local_filename = str(re.search("[^/]*$",args.download).group())
+            data = {"jsonrpc": "2.0", "method": "cp_file", "id": 1, "params": [args.download,
+                                                                               "file_buf/"+local_filename]}
             r = requests.post(server_address, json=data)
-            with requests.get(server_address + "/" + args.download, stream=True) as r:
+            print(r.text + "\nfile cp to server folder: " + args.download)
+            with requests.get(server_address + "/file_buf/" + local_filename, stream=True) as r:
                 if r.status_code != requests.codes.ok:
                     print("Error " + str(r.status_code))
                 else:
@@ -87,8 +91,9 @@ if __name__ == '__main__':
                         for chunk in r.iter_content(chunk_size=1024):
                             f.write(chunk)
                     print("file downloaded: ", local_filename)
-            data = {"jsonrpc": "2.0", "method": "rm_file", "id": 1, "params": [local_filename]}
+            data = {"jsonrpc": "2.0", "method": "rm_file", "id": 1, "params": ["file_buf/"+local_filename]}
             r = requests.post(server_address, json=data)
+            print(r.text + "\nfile rm from server folder: " + local_filename)
         elif args.move is not None:
             data = {"jsonrpc": "2.0", "method": "move_file", "id": 1, "params": [args.move[0],args.move[1]]}
             r = requests.post(server_address, json=data)
