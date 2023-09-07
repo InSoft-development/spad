@@ -35,6 +35,8 @@ class RunningTask(object):
         print(workflow, ": RUN:", self.task_name)
         self.set_json_status("running")
         function_path = root_path + "/../bin/" + self.task_json()["task"]["function"]
+        if not os.path.isfile(function_path):
+            function_path = self.task_json()["task"]["function"]
         self.process = subprocess.Popen([function_path] + self.task_json()["task"]["params"],
                                         stdout=self.log, stderr=self.err, encoding='utf-8',
                                         cwd=self.path)
@@ -45,6 +47,8 @@ class RunningTask(object):
         print(workflow, ": RERUN:", self.task_name)
         self.set_json_status("rerun")
         function_path = root_path + "/../bin/" + self.task_json()["task"]["function"]
+        if not os.path.isfile(function_path):
+            function_path = self.task_json()["task"]["function"]
         # self.log = open(self.path + "/out", "w+")
         # self.err = open(self.path + "/err", "w+")
         self.process = subprocess.Popen([function_path] + self.task_json()["task"]["params"],
