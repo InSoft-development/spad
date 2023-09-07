@@ -102,7 +102,7 @@ _spa_сonn status -p < project> -w < workflow> (-t < task>)_
 * immortal(pid) - не завершился после сигнала terminate, оставляем попытки его убить. Дальнейшее отслеживание - по выданному pid.
 
 ### dump
-_spa_сonn status -p < project> -w < workflow> (-t < task >)_
+_spa_сonn dump -p < project> -w < workflow> (-t < task >)_
 
 Возвращает существующую конфигурацию проекта, воркфлоу или таска в виде json
 Указать project и workflow обязательно, можно указать task
@@ -117,13 +117,13 @@ _spa_сonn status -p < project > -w < workflow > -t < task >_
 ### file
 Копирование файлов на и с сервера.
 
-_spa_сonn file --upload < file >_
+_spa_сonn file --upload < local_file > -p < project > -w < workflow > -t < task >_
 
-Загрузка локального файла на сервер spad. Если не указано пути - в дирректорию, где работает spad.
+Загрузка локального файла на сервер spad в папку конкретного таска.
 
-_spa_сonn file --download < file >_
+_spa_сonn file --download < remote_file >_
 
-Скачивание файла с сервера spad на локальную файловую систем. Если не указано путей - из дирректории, где работает spad в дирректорию, где работает spa_ctl на локальной машине.
+Скачивание файла с сервера spad.
 
 _spa_сonn file --move < file1> < file2 >_
 
