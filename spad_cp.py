@@ -15,13 +15,12 @@ if __name__ == '__main__':
     f1 = args.f1
     f2 = args.f2
     if re.match(r'^task:.*',f1) : #local file in nearby task directory
-        task = f1.split(":/",3)[1]
-        filename = f1.split(":/", 3)[2]
+        filename = f1.split(":")[1]
         cwd = os.getcwd()
-        if not re.match(r'\/opt\/spa\/data\/\w*\/\w*\/\w*'):
+        if not re.match(r'\/opt\/spa\/data\/\w*\/\w*\/\w*', cwd):
             print("not in task dir: " + cwd)
             exit(1)
-        f1 = cwd + "/../"+task + "/" + filename
+        f1 = cwd + "/../" + filename
         if not os.path.isfile(f1):
             print("no file " + f1)
             exit(1)
@@ -31,16 +30,12 @@ if __name__ == '__main__':
             exit(1)
 
     if re.match(r'^task:.*',f2) : #local file in nearby task directory
-        task = f2.split(":/", 3)[1]
-        if len(f2.split(":/", 3)) < 3:
-            filename = "."
-        else:
-            filename = f2.split(":/", 3)[2]
+        filename = f2.split(":")[1]
         cwd = os.getcwd()
-        if not re.match(r'\/opt\/spa\/data\/\w*\/\w*\/\w*'):
+        if not re.match(r'\/opt\/spa\/data\/\w*\/\w*\/\w*',cwd):
             print("not in task dir: " + cwd)
             exit(1)
-        f2 = cwd + "/../" + task + "/" + filename
+        f2 = cwd + "/../" + filename
         try:
             shutil.copyfile(f1, f2)
             print("cp ", f1, " ", f2)
