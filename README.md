@@ -312,17 +312,14 @@ _spa_сonn file --link < file1> < file2 >_
 4. _spa_conn run --project my_project --wf demo_ #запуск первого воркфлоу
 5. Изучаем данные в веб странице у себя локально, записываем пометки по разметке в текстовый файл у себя локально
 6. _spa_conn stop --wf demo_ #останов
-~~7. _spa_conn file --upload intervals.json_ #закидываем наш файлик~~ Это вставил в воркфлоу
-~~8. _spa_conn file --move intervals.json /home/my_user/intervals_v1.json_ #перемещаем его на удаленной машине в home~~
-~~9. _spa_conn file --link /home/my_user/intervals_v1.json /opt/spa/data/my_project/learn/learn_task/intervals.json_ #кладем ссылку на него в нужную папку~~
-10. _spa_conn run --wf learn_ #запуск обучения
-11. ожидаем окончания, периодически посматривая статус следующей командой
-12. _spa_conn status --wf learn_
-13. когда исполнение окончилось успешно - переходим к анализу
-14. _spa_conn run --wf analyse_ #запуск онлайн анализа со всем множеством скриптов
-15. производим мониторинг работы через веб интерфейс в run_dashboard
+7. _spa_conn run --wf learn_ #запуск обучения
+8. ожидаем окончания, периодически посматривая статус следующей командой
+9. _spa_conn status --wf learn_
+10. когда исполнение окончилось успешно - переходим к анализу
+11. _spa_conn run --wf analyse_ #запуск онлайн анализа со всем множеством скриптов
+12. производим мониторинг работы через веб интерфейс в run_dashboard
 
-В дальнейшем - мы хотим объединить все workflow в один, когда, допустим, автоматизировали отбор интервалов - и написали простейшие баш скрипты для перекладывания файла интервалов весов в home - с созданием симлинка в нужные места после обучения: mv1.sh, mv2.sh
+В дальнейшем - мы хотим объединить все workflow в один, когда, допустим, автоматизировали отбор интервалов.
 ```
 {
     "project": {
@@ -348,9 +345,10 @@ _spa_сonn file --link < file1> < file2 >_
                         "name": "mv_intervals",
                         "place": 1,
                         "exec": "await",
-                        "function": "mv1.sh",
+                        "function": "spad_cp.py",
                         "params": [
-                            "weight.json"
+                            "task:find_intervals/intervals.json",
+                            "task:learn/intervals.json"
                         ],
                     },
                     {
@@ -369,9 +367,10 @@ _spa_сonn file --link < file1> < file2 >_
                         "name": "mv_weights",
                         "place": 1,
                         "exec": "await",
-                        "function": "mv2.sh",
+                        "function": "spad_cp.py",
                         "params": [
-                            "weight.json"
+                            "task:learn/weight.json",
+                            "task:method/weight.json"
                         ],
                     },
                     {
@@ -430,4 +429,3 @@ _spa_сonn file --link < file1> < file2 >_
 _spa_conn create -f learn_and_run.json_
 _spa_conn run -p my_project -w learn_and_run_
 
-Но падает на втором таске - и нам приходится возвращаться к первому варианту, так как он стабильнее =)
