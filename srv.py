@@ -247,7 +247,8 @@ def delete(data) -> Result:
             print(workflow_name, "delete")
             path = "/opt/spa/data/" + project_name + "/" + workflow_name
             if not os.path.exists(path):
-                return Error(1, {"message": "workflow " + workflow_name + " not exists"})
+                print("workflow " + workflow_name + " not exists")
+                continue
 
             #whole workflow for delete
             if "tasks" not in workflow_json and "task" not in workflow_json:
@@ -268,10 +269,12 @@ def delete(data) -> Result:
                 for task in workflow_json["tasks"]:
                     task_name = task["name"]
                     print("delete qu add task",task_name)
-                    tasks_to_delete[workflow_name].append(task_name)
+
                     path = "/opt/spa/data/" + project_name + "/" + workflow_json["name"] + "/" + task_name
                     if not os.path.exists(path):
-                        return Error(1, {"message": "task " + task_name + " not exists"})
+                        print("task " + task_name + " not exists")
+                    else:
+                        tasks_to_delete[workflow_name].append(task_name)
     # если успешно прошли все проверки - удаляем таск на диске
     for workflow_json in project["workflows"]:
         if workflow_json["name"] not in workflows_to_delete:
@@ -300,8 +303,8 @@ def delete(data) -> Result:
         path = "/opt/spa/data/" + project_name + "/" + workflow_name
         try:
             shutil.rmtree(path)
-        except Exception:
-            return Error(1, {"message": "workflow " + workflow_name + " can not be deleted"})
+        except Exception as err:
+            return Error(1, {"message": "workflow " + workflow_name + " can not be deleted " + str(err)})
         #return Success({"answer": "workflow " + workflow_name + " successfully deleted"})
     return Success({"answer": "Successfully deleted " + str(workflows_to_delete) + str(tasks_to_delete)})
 
