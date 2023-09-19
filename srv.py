@@ -1,18 +1,19 @@
 #!/usr/bin/python
+import atexit
+import cgi
 import datetime
+import io
+import json
+import os
+import re
+import shutil
 import signal
+import subprocess
 import time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from jsonrpcserver import method, Result, Success, dispatch, Error
+
 import oslash
-import json
-import subprocess
-import cgi
-import io
-import os
-import atexit
-import shutil
-import re
+from jsonrpcserver import method, Result, Success, dispatch, Error
 
 workflow_processes = {}
 logs={}
@@ -212,7 +213,47 @@ def create(data) -> Result:
 @method
 def delete(data) -> Result:
     print("DELETE DATA:", data)
-    # data = data[0]
+    data_new = data
+    if "project" in data:
+        if type(data["project"]) is str: #short form of call
+            if "workflow" in data and type(data["workflow"]) is str:
+                if "task" in data and type(data["task"]) is str:
+                    data_new = \
+                        {
+                            "project": {
+                                "name": data["project"],
+                                "workflows": [
+                                    {
+                                        "name": data["workflow"],
+                                        "tasks": [
+                                            {
+                                                "name": data["task"],
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                else:
+                    data_new = \
+                        {
+                            "project": {
+                                "name": data["project"],
+                                "workflows": [
+                                    {
+                                        "name": data["workflow"]
+                                    }
+                                ]
+                            }
+                        }
+
+            else:
+                return Error(1, {"answer": "Specify workflow. It is not supported, to delete project"})
+        #elif type(data["project"]) is dict: continue
+    else:
+        return Error(1, {"answer": "Specify project and workflow"})
+    data = data_new
+
     workflows_to_delete = []
     tasks_to_delete = {}
     workflows_q = {}

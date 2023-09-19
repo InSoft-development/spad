@@ -28,7 +28,8 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    server_address = "http://10.23.0.87:5000"
+    with open("srv.conf","r") as conf:
+        server_address = conf.read()
     params = dict()
     if args.json is not None:
         if args.project is not None:
