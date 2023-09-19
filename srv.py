@@ -359,6 +359,20 @@ def update(data) -> Result:
             return Success({"answer": "file tree updated"})
     return ret
 
+@method()
+def recreate(data) -> Result:
+    if "project" in data and type(data["project"]) is dict:  # json tree as input
+        if len(data["project"]["workflows"]) > 1:
+            for wf in data["project"]["workflows"]:
+                ret = delete({"project": data["project"]["name"], "workflow": wf["name"]})
+                if not isinstance(ret, oslash.either.Right):
+                    return Error(1, ret)
+        else:
+            return Error(1, "Specify workflow")
+    ret = create(data)
+    if isinstance(ret, oslash.either.Right):
+        return Success({"answer": "file tree updated"})
+    return ret
 
 @method
 def run(data) -> Result:

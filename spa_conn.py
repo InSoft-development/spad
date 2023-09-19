@@ -7,7 +7,7 @@ import shutil
 
 def parse_args():
     parser = argparse.ArgumentParser(description="execute requests to spa server")
-    parser.add_argument("action", choices=["create", "delete", "update", "run", "stop", "status", "set_status", "dump",
+    parser.add_argument("action", choices=["create", "recreate", "delete", "update", "run", "stop", "status", "set_status", "dump",
                                            "select_project", "file", "kill_all"],
                         help="choose needed action")
     parser.add_argument("--json", "-j", type=str, help="parameters in json format")
