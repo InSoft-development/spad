@@ -267,7 +267,7 @@ def kill_all_tasks():
 
 def review_statuses():
     # собрать по всем таскам их текущий статус настоящий, заодно убирая pid файлы умерших - и записать их в json тасков
-    print(workflow, ": INFO: review status")
+    #print(workflow, ": INFO: review status")
     global running_tasks
     tasks_for_remove = set()
     for t in running_tasks:
@@ -281,7 +281,8 @@ def review_statuses():
             t.rerun()
         elif new_status != "running" and new_status != "rerun" and new_status != "waiting":
             tasks_for_remove.add(t)
-    print(workflow, ": del tasks:", [t.task_name for t in tasks_for_remove])
+    if len(tasks_for_remove) > 0:
+        print (workflow, ": del tasks:", [t.task_name for t in tasks_for_remove])
     running_tasks -= tasks_for_remove
     tasks_for_remove.clear()
     # собрать инфу из json тасков - в json workflow
