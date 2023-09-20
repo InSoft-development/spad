@@ -362,7 +362,7 @@ def update(data) -> Result:
 @method()
 def recreate(data) -> Result:
     if "project" in data and type(data["project"]) is dict:  # json tree as input
-        if len(data["project"]["workflows"]) > 1:
+        if len(data["project"]["workflows"]) > 0:
             for wf in data["project"]["workflows"]:
                 ret = delete({"project": data["project"]["name"], "workflow": wf["name"]})
                 if not isinstance(ret, oslash.either.Right):
