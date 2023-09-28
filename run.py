@@ -34,10 +34,21 @@ class RunningTask(object):
     def run(self):
         print(workflow, ": RUN:", self.task_name)
         self.set_json_status("running")
-        function_path = root_path + "/../bin/" + self.task_json()["task"]["function"]
-        if not os.path.isfile(function_path):
-            function_path = self.task_json()["task"]["function"]
-        self.process = subprocess.Popen([function_path] + self.task_json()["task"]["params"],
+        if self.task_json()["task"]["function"][-3:] == ".py":
+            function_path = "python"
+            params = [str(root_path + "/../bin/" + self.task_json()["task"]["function"])] + self.task_json()["task"]["params"]
+            print("python")
+        elif self.task_json()["task"]["function"][-3:] == ".sh":
+            function_path = "bash"
+            params = [str(root_path + "/../bin/" + self.task_json()["task"]["function"])] + self.task_json()["task"]["params"]
+            print("sh")
+        else:
+            function_path = str(root_path + "/../bin/" + self.task_json()["task"]["function"])
+            params = self.task_json()["task"]["params"]
+            if not os.path.isfile(function_path):
+                function_path = self.task_json()["task"]["function"]
+            print("exec")
+        self.process = subprocess.Popen([function_path] + params,
                                         stdout=self.log, stderr=self.err, encoding='utf-8',
                                         cwd=self.path)
         self.pid = str(self.process.pid)
@@ -46,13 +57,23 @@ class RunningTask(object):
     def rerun(self):
         print(workflow, ": RERUN:", self.task_name)
         self.set_json_status("rerun")
-        function_path = root_path + "/../bin/" + self.task_json()["task"]["function"]
-        if not os.path.isfile(function_path):
-            function_path = self.task_json()["task"]["function"]
-        # self.log = open(self.path + "/out", "w+")
-        # self.err = open(self.path + "/err", "w+")
-        self.process = subprocess.Popen([function_path] + self.task_json()["task"]["params"],
-                                        stdout=self.log, stderr=self.err, encoding='utf-8')
+        if self.task_json()["task"]["function"][-3:] == ".py":
+            function_path = "python"
+            params = [str(root_path + "/../bin/" + self.task_json()["task"]["function"])] + self.task_json()["task"][
+                "params"]
+            print("python")
+        elif self.task_json()["task"]["function"][-3:] == ".sh":
+            function_path = "bash"
+            params = [str(root_path + "/../bin/" + self.task_json()["task"]["function"])] + self.task_json()["task"][
+                "params"]
+        else:
+            function_path = str(root_path + "/../bin/" + self.task_json()["task"]["function"])
+            params = self.task_json()["task"]["params"]
+            if not os.path.isfile(function_path):
+                function_path = self.task_json()["task"]["function"]
+        self.process = subprocess.Popen([function_path] + params,
+                                        stdout=self.log, stderr=self.err, encoding='utf-8',
+                                        cwd=self.path)
         self.pid = str(self.process.pid)
         open(self.path + "/pid", "w").write(self.pid)
 

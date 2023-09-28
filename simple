@@ -5,7 +5,7 @@ then
 	i=$1
 fi
 
-while [ $i -gt 0 ]
+while [ $i -ne 0 ]
 do
 	echo $i
 	sleep 1
