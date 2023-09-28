@@ -1,17 +1,15 @@
 [Unit]
 Description=SpadService
 After=network.target
-After=clickhouse-server.service
-Requires=clickhouse-server.service
 
 [Service]
-PIDFile=/home/spa/spad/service.pid
-WorkingDirectory=/home/spa/spad
+Type=simple
+WorkingDirectory=/opt/spa/bin/
 User=spa
 Group=spa
 OOMScoreAdjust=-100
-ExecStart=/home/spa/spad/srv.py
-ExecStop=/home/spa/spad/spa_conn.py kill_all
+ExecStart=/opt/spa/bin/srv.py
+ExecStop=/opt/spa/bin/spa_conn.py kill_all
 TimeoutSec=300
 Restart=always
 
