@@ -1,12 +1,10 @@
 [Unit]
 Description=SpadService
-After=syslog.target
 After=network.target
 After=clickhouse-server.service
 Requires=clickhouse-server.service
 
 [Service]
-Type=simple
 PIDFile=/home/spa/spad/service.pid
 WorkingDirectory=/home/spa/spad
 User=spa
@@ -14,7 +12,6 @@ Group=spa
 OOMScoreAdjust=-100
 ExecStart=/home/spa/spad/srv.py
 ExecStop=/home/spa/spad/spa_conn.py kill_all
-ExecReload=/home/spa/spad/srv.py
 TimeoutSec=300
 Restart=always
 
