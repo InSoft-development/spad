@@ -36,7 +36,7 @@ class ExecutionQueue(object):
     # Добавление
     def add_task(self, new_task: dict):
         if self.wf_name in workflow_processes.keys():
-            print("ERROR: This workflow is currently executed, can't add task")
+            print(datetime.datetime.now().isoformat(), "ERROR: This workflow is currently executed, can't add task")
             return
         new_task["status"] = "new"
         if len(self.tasks) == 0:
@@ -90,10 +90,10 @@ class ExecutionQueue(object):
     # Добавление
     def delete_task(self, rm_task: dict):
         if self.wf_name in workflow_processes.keys():
-            print("ERROR: This workflow is currently executed, can't delete task")
+            print(datetime.datetime.now().isoformat(), "ERROR: This workflow is currently executed, can't delete task")
             return 1
         if "pid" in os.listdir("/opt/spa/data/" + project_name + "/" + self.wf_name + "/" + rm_task):
-            print("ERROR: PID file exists, can't delete task, inconsistent state may occur")
+            print(datetime.datetime.now().isoformat(), "ERROR: PID file exists, can't delete task, inconsistent state may occur")
             return 1
         i = 0
         for i in range(len(self.tasks)):
@@ -102,15 +102,15 @@ class ExecutionQueue(object):
         if i == len(self.tasks):
             return 1
         #task = next(t for t in self.tasks if t["name"] == rm_task)
-        print("del:", i)
+        print(datetime.datetime.now().isoformat(), "del:", i)
         del self.tasks[i]
         i = 0
         for task in self.tasks:
             task["place"] = i
             i += 1
-        print("remained", self.tasks)
+        print(datetime.datetime.now().isoformat(), "remained", self.tasks)
         path = "/opt/spa/data/" + project_name + "/" + self.wf_name + "/" + rm_task
-        print("delete dir")
+        print(datetime.datetime.now().isoformat(), "delete dir")
         try:
             shutil.rmtree(path)
         except Exception:
@@ -125,10 +125,10 @@ class ExecutionQueue(object):
     #             task["status"] = status
 
     def save_wf_file(self):
-        print("save wf")
+        print(datetime.datetime.now().isoformat(), "save wf")
         with open("/opt/spa/data/" + project_name + "/" + self.wf_name + "/workflow.json", "w") as wf_json_file:
             json.dump(self.tasks, wf_json_file, indent=3)
-        print("wf saved")
+        print(datetime.datetime.now().isoformat(), "wf saved")
 
 @method
 def select_project(project) -> Result:
@@ -151,7 +151,7 @@ def select_project(project) -> Result:
 
 @method
 def create(data) -> Result:
-    print("CREATE DATA:", data)
+    print(datetime.datetime.now().isoformat(), "CREATE DATA:", data)
     # data = data[0]
     global project_name
     project_name = data["project"]["name"]
@@ -212,7 +212,7 @@ def create(data) -> Result:
 
 @method
 def delete(data) -> Result:
-    print("DELETE DATA:", data)
+    print(datetime.datetime.now().isoformat(), "DELETE DATA:", data)
     data_new = data
     if "project" in data:
         if type(data["project"]) is str: #short form of call
@@ -279,28 +279,28 @@ def delete(data) -> Result:
 
     #  workflows and tasks delete
     else:
-        # print("wf del")
+        # print(datetime.datetime.now().isoformat(), "wf del")
         if "workflows" not in project:  # synonymous
             project["workflows"] = project["workflow"]
 
         for workflow_json in project["workflows"]:
             workflow_name = workflow_json["name"]
-            print(workflow_name, "delete")
+            print(datetime.datetime.now().isoformat(), workflow_name, "delete")
             path = "/opt/spa/data/" + project_name + "/" + workflow_name
             if not os.path.exists(path):
-                print("workflow " + workflow_name + " not exists")
+                print(datetime.datetime.now().isoformat(), "workflow " + workflow_name + " not exists")
                 continue
 
             #whole workflow for delete
             if "tasks" not in workflow_json and "task" not in workflow_json:
-                print("delete whole wf")
+                print(datetime.datetime.now().isoformat(), "delete whole wf")
                 workflows_to_delete.append(workflow_name)
                 # try:
                 #     return Success({"answer": "workflow " + workflow_json["name"] + " successfully deleted"})
                 # except OSError:
                 #     return Error(1, {"message": "workflow " + workflow_json["name"] + " can not be deleted"})
             else:
-                print("delete some tasks")
+                print(datetime.datetime.now().isoformat(), "delete some tasks")
                 workflows_q[workflow_name] = ExecutionQueue(project_name, workflow_json["name"])
                 workflows_q[workflow_name].load()
 
@@ -309,18 +309,18 @@ def delete(data) -> Result:
                 tasks_to_delete[workflow_name] = []
                 for task in workflow_json["tasks"]:
                     task_name = task["name"]
-                    print("delete qu add task",task_name)
+                    print(datetime.datetime.now().isoformat(), "delete qu add task",task_name)
 
                     path = "/opt/spa/data/" + project_name + "/" + workflow_json["name"] + "/" + task_name
                     if not os.path.exists(path):
-                        print("task " + task_name + " not exists")
+                        print(datetime.datetime.now().isoformat(), "task " + task_name + " not exists")
                     else:
                         tasks_to_delete[workflow_name].append(task_name)
     # если успешно прошли все проверки - удаляем таск на диске
     for workflow_json in project["workflows"]:
         if workflow_json["name"] not in workflows_to_delete:
             for task_name in tasks_to_delete[workflow_json["name"]]:
-                print("remove task", task_name, workflow_json["name"])
+                print(datetime.datetime.now().isoformat(), "remove task", task_name, workflow_json["name"])
                 if workflows_q[workflow_json["name"]].delete_task(task_name) == 1:
                     return Error(1, {"message": "task " + task_name + "can not be deleted"})
                 # else:
@@ -328,7 +328,7 @@ def delete(data) -> Result:
 
     # если успешно прошли все проверки - удаляем помеченные к удалению целиком воркфлоу на диске
     for workflow_name in workflows_to_delete:
-        print("delete wf", workflow_name)
+        print(datetime.datetime.now().isoformat(), "delete wf", workflow_name)
         if workflow_name in workflow_processes:
             if workflow_processes[data["workflow"]].poll() is None:
                 return Error(1, {"message": "this workflow is executing now"})
@@ -415,8 +415,8 @@ def run(data) -> Result:
 
 
 def kill_wf(wf):
-    print("Stopping:", wf)
-    print(workflow_processes)
+    print(datetime.datetime.now().isoformat(), "Stopping:", wf)
+    print(datetime.datetime.now().isoformat(), workflow_processes)
     if wf not in workflow_processes:
         return Success({"answer": "workflow is not running"})
 
@@ -426,27 +426,27 @@ def kill_wf(wf):
     number_of_tasks = len(os.listdir(path))
     ret_code = p.poll()
     if ret_code is None:
-        print("INFO: terminating ", wf)
+        print(datetime.datetime.now().isoformat(), "INFO: terminating ", wf)
         p.send_signal(signal.SIGUSR1)
         # p.terminate()
         time.sleep(number_of_tasks)
         ret_code = p.poll()
         if ret_code is None:
-            print("ERROR: can't stop workflow within ", number_of_tasks, " sec", wf)
+            print(datetime.datetime.now().isoformat(), "ERROR: can't stop workflow within ", number_of_tasks, " sec", wf)
             time.sleep(number_of_tasks * 5)
             ret_code = p.poll()
             if ret_code is None:
-                print("ERROR: can't stop workflow within ", number_of_tasks * 6, " sec", wf)
+                print(datetime.datetime.now().isoformat(), "ERROR: can't stop workflow within ", number_of_tasks * 6, " sec", wf)
                 time.sleep(number_of_tasks * 5)
                 ret_code = p.poll()
                 if ret_code is None:
-                    print("ERROR: can't stop workflow within ", number_of_tasks * 11, " sec, trying to kill", wf)
+                    print(datetime.datetime.now().isoformat(), "ERROR: can't stop workflow within ", number_of_tasks * 11, " sec, trying to kill", wf)
                     # !FIXME может не надо килять прям?
                     p.terminate()
                     time.sleep(number_of_tasks * 10)
                     ret_code = p.poll()
                     if ret_code is None:
-                        print("ERROR: can't terminate workflow!", wf)
+                        print(datetime.datetime.now().isoformat(), "ERROR: can't terminate workflow!", wf)
                         p.kill()
                         # logs[wf].close()
                         # errs[wf].close()
@@ -471,7 +471,7 @@ def stop(data) -> Result:
         data = {"project": data["project"]["name"],
                 "workflow": data["project"]["workflows"][0]["name"]}
 
-    print("current wfs:", workflow_processes.keys())
+    print(datetime.datetime.now().isoformat(), "current wfs:", workflow_processes.keys())
 
     global project_name
     if "workflow" not in data and "project" in data:
@@ -638,7 +638,7 @@ def move_file(f1,f2) -> Result:
         m4 = re.match(r'file_buf/.+',f2)
         if not m1 and not m2 and not m3 and not m4:
             f2 += f1 #mv to folder
-        print("move ", f1," ",f2)
+        print(datetime.datetime.now().isoformat(), "move ", f1," ",f2)
         os.rename(f1, f2)
         return Success({"answer": f1 + " moved to " + f2})
     except OSError as err:
@@ -649,7 +649,7 @@ def cp_file(f1,f2) -> Result:
     try:
         if not os.path.isfile(f1):
             return Error(1, {"message": "no file " + f1})
-        print("cp ", f1," ",f2)
+        print(datetime.datetime.now().isoformat(), "cp ", f1," ",f2)
         shutil.copyfile(f1, f2)
         return Success({"answer": f1 + " moved to " + f2})
     except OSError as err:
@@ -667,7 +667,7 @@ def rm_file(f2) -> Result:
     try:
         if not os.path.isfile(f2):
             return Error(1, {"message": "no file " + f2})
-        print("rm ", f2)
+        print(datetime.datetime.now().isoformat(), "rm ", f2)
         os.remove(f2)
         return Success({"answer": f2 + " removed"})
     except OSError as err:
@@ -689,7 +689,7 @@ def link_file(f1,f2) -> Result:
         m3 = re.match(r'/home.+', f2)
         if not m1 and not m2 and not m3:
             f2 += f1
-        print("move ", f1," ",f2)
+        print(datetime.datetime.now().isoformat(), "move ", f1," ",f2)
         os.symlink(f1, f2)
         return Success({"answer": f2 + " -> " + f1})
     except OSError as err:
@@ -702,12 +702,12 @@ def link_file(f1,f2) -> Result:
 #     workflow = data["workflow"]
 #     task = data["task"]
 #     path = "/opt/spa/data/" + project + "/" + workflow + "/" + task + ""
-#      print(command)
+#      print(datetime.datetime.now().isoformat(), command)
 #     #time.sleep(10)
 #     global a
 #     p = subprocess.Popen([str(command),str(args)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding = 'utf-8')
 #     stdout,stderr = p.communicate()
-#     print(stdout)
+#     print(datetime.datetime.now().isoformat(), stdout)
 #     #p.wait()
 #     a += 1
 #     return Success({"answer": stdout})
@@ -716,16 +716,16 @@ class TestHttpServer(SimpleHTTPRequestHandler):
     # !FIXME Может быть добавить асинхронность, чтобы запросы обрабатывались параллельно
     def do_POST(self):
         ctype, pdict = cgi.parse_header(self.headers['Content-Type'])
-        print("CTYPE:", ctype)
+        print(datetime.datetime.now().isoformat(), "CTYPE:", ctype)
         if ctype == 'multipart/form-data':
-            print("file upload")
+            print(datetime.datetime.now().isoformat(), "file upload")
             pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
             pdict['CONTENT-LENGTH'] = int(self.headers['Content-Length'])
 
             form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD': 'POST',
                                                                                   'CONTENT_TYPE': self.headers[
                                                                                       'Content-Type'], })
-            print(type(form))
+            print(datetime.datetime.now().isoformat(), type(form))
             try:
                 if isinstance(form["file"], list):
                     for record in form["file"]:
@@ -746,9 +746,9 @@ class TestHttpServer(SimpleHTTPRequestHandler):
                 f.close()
         else:
             # Process request
-            print(self.headers["Content-Length"])
+            print(datetime.datetime.now().isoformat(), self.headers["Content-Length"])
             request = self.rfile.read(int(self.headers["Content-Length"])).decode()
-            print("REQUEST:", request)
+            print(datetime.datetime.now().isoformat(), "REQUEST:", request)
             response = dispatch(request)
             # Return response
             self.send_response(200)
@@ -758,7 +758,7 @@ class TestHttpServer(SimpleHTTPRequestHandler):
 
 @method
 def kill_all():
-    print(workflow_processes)
+    print(datetime.datetime.now().isoformat(), workflow_processes)
     wf_list = set(workflow_processes.keys())
     for key in wf_list:
         kill_wf(key)
@@ -772,7 +772,7 @@ def restart_after_death():
         for wf in wfs:
             files = os.listdir(path+project+"/"+wf)
             if "pid" in files:
-                print("Restart workflow in", path+project+"/"+wf+"/pid")
+                print(datetime.datetime.now().isoformat(), "Restart workflow in", path+project+"/"+wf+"/pid")
                 run({"project":project, "workflow":wf})
 
 def handler_child_death(signum, frame):
@@ -780,9 +780,9 @@ def handler_child_death(signum, frame):
     for wf in workflow_processes.keys():
         p = workflow_processes[wf].poll()
         if p is not None:
-            print(wf, " is status ", p)
+            print(datetime.datetime.now().isoformat(), wf, " is status ", p)
             break
-    print(kill_wf(wf))
+    print(datetime.datetime.now().isoformat(), kill_wf(wf))
     workflow_processes.pop(wf)
 
 signal.signal(signal.SIGCHLD,handler_child_death)
