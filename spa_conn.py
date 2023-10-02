@@ -28,7 +28,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    with open("srv.conf","r") as conf:
+    with open("/opt/spa/conf/srv.conf","r") as conf:
         server_address = conf.read()
     params = dict()
     if args.json is not None:
