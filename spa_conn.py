@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import datetime
 import re
 import requests
 import argparse
@@ -7,7 +8,7 @@ import shutil
 
 def parse_args():
     parser = argparse.ArgumentParser(description="execute requests to spa server")
-    parser.add_argument("action", choices=["create", "recreate", "delete", "update", "run", "stop", "status", "set_status", "dump",
+    parser.add_argument("action", choices=["create", "recreate", "delete", "update", "run", "start", "log", "stop", "status", "set_status", "dump",
                                            "select_project", "file", "kill_all"],
                         help="choose needed action")
     parser.add_argument("--json", "-j", type=str, help="parameters in json format")
@@ -60,7 +61,42 @@ if __name__ == '__main__':
         if args.task is not None:
             params["task"] = args.task
 
-    if args.action == "file":
+    if args.action == "log":
+        if args.task is not None:
+            if args.project is None:
+                print("specify project")
+                exit()
+            if args.workflow is None:
+                print("specify workflow")
+                exit()
+            log = "/opt/spa/data/"+args.project+"/"+args.workflow+"/"+args.task+"/log"
+        elif args.workflow is not None:
+            if args.project is None:
+                print("specify project")
+                exit()
+            log = "/opt/spa/data/" + args.project + "/" + args.workflow + "/log"
+        elif args.project is not None:
+            print("no logs for project, specify workflow")
+            exit()
+        else:
+            log = "/opt/spa/log/srv.log"
+        print(log, " would be downloaded")
+        data = {"jsonrpc": "2.0", "method": "cp_file", "id": 1, "params": [log, "file_buf/log"]}
+        r = requests.post(server_address, json=data)
+        print(r.text + "\nlog cp to server temp folder")
+        with requests.get(server_address + "/file_buf/log", stream=True) as r:
+            if r.status_code != requests.codes.ok:
+                print("Error " + str(r.status_code))
+            else:
+                with open("log_"+datetime.datetime.now().isoformat(), 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        f.write(chunk)
+                print("file downloaded: ", "log_"+datetime.datetime.now().isoformat())
+        data = {"jsonrpc": "2.0", "method": "rm_file", "id": 1, "params": ["file_buf/log"]}
+        r = requests.post(server_address, json=data)
+        print(r.text + "\nlog rm from server temp folder")
+
+    elif args.action == "file":
         if args.upload is not None:
             if args.project is None:
                 print("specify project")

@@ -4,12 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/spa/bin/
+WorkingDirectory=/opt/spa/
 User=spa
 Group=spa
 OOMScoreAdjust=-100
 ExecStart=/opt/spa/bin/srv.py
-ExecStop=/opt/spa/bin/spa_conn.py kill_all
 TimeoutSec=300
 Restart=always
 

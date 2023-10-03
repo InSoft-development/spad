@@ -414,8 +414,11 @@ def run(data) -> Result:
     workflow_processes[data["workflow"]] = p
     return Success({"answer": "running in subprocess"})
 
+@method
+def start(data) -> Result:
+    return(run(data))
 
-def kill_wf(wf):
+def kill_wf(wf,keep_pid=False):
     logging.info(datetime.datetime.now().isoformat()+ "Stopping:"+ str(wf))
     logging.info(datetime.datetime.now().isoformat()+ str(workflow_processes))
     if wf not in workflow_processes:
@@ -457,9 +460,10 @@ def kill_wf(wf):
                         # logs.pop(wf)
                         # errs.pop(wf)
                         return Error(1, {"message": "ERROR: can't stop workflow, killing it"})
-    if ret_code is not None:
-        if "pid" in os.listdir(path):
-            os.remove(path + "/pid")
+    if not keep_pid:
+        if ret_code is not None:
+            if "pid" in os.listdir(path):
+                os.remove(path + "/pid")
     # logs[wf].close()
     # errs[wf].close()
     # logs.pop(wf)
@@ -761,11 +765,11 @@ class TestHttpServer(SimpleHTTPRequestHandler):
             self.wfile.write(response.encode())
 
 @method
-def kill_all():
+def kill_all(restart=False):
     logging.info(datetime.datetime.now().isoformat()+ str(workflow_processes))
     wf_list = set(workflow_processes.keys())
     for key in wf_list:
-        kill_wf(key)
+        kill_wf(key,keep_pid=restart)
     return Success({"answer": "everything is stopped"})
 
 def restart_after_death():
@@ -799,4 +803,4 @@ if __name__ == "__main__":
     except Exception as exc:
         logging.critical(str(exc))
     finally:
-        kill_all()
+        kill_all(restart=True)#restart after reboot

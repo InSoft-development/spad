@@ -23,8 +23,7 @@ class RunningTask(object):
         self.task_name = task_name
         self.path = root_path + project + "/" + workflow + "/" + task_name
         self.pid = ""
-        self.log = open(self.path + "/out", "w")
-        self.err = open(self.path + "/err", "w")
+        self.log = open(self.path + "/log", "w")
         self.process = None
         self.set_json_status("not run")
 
@@ -48,7 +47,7 @@ class RunningTask(object):
             if not os.path.isfile(function_path):
                 function_path = self.task_json()["task"]["function"]
         self.process = subprocess.Popen([function_path] + params,
-                                        stdout=self.log, stderr=self.err, encoding='utf-8',
+                                        stdout=self.log, stderr=self.log, encoding='utf-8',
                                         cwd=self.path)
         self.pid = str(self.process.pid)
         open(self.path + "/pid", "w").write(self.pid)
@@ -70,7 +69,7 @@ class RunningTask(object):
             if not os.path.isfile(function_path):
                 function_path = self.task_json()["task"]["function"]
         self.process = subprocess.Popen([function_path] + params,
-                                        stdout=self.log, stderr=self.err, encoding='utf-8',
+                                        stdout=self.log, stderr=self.log, encoding='utf-8',
                                         cwd=self.path)
         self.pid = str(self.process.pid)
         open(self.path + "/pid", "w").write(self.pid)
@@ -203,7 +202,6 @@ class RunningTask(object):
         if self in running_tasks:
             self.stop_task()
         self.log.close()
-        self.err.close()
         logging.info(datetime.datetime.now().isoformat() + ": DEL:" + self.task_name)
 
 
@@ -271,8 +269,9 @@ def stop_all_tasks():
     #running_tasks.clear()
     with open(root_path + project + "/" + workflow + "/workflow.json", "r") as wf_json_file:
         wf_tasks = json.load(wf_json_file) # os.listdir("/opt/spa/data/" + project + "/" + workflow)
+    wf_task_names = [t["name"] for t in wf_tasks]
     wf_path = root_path + project + "/" + workflow
-    for task_dir in wf_tasks:
+    for task_dir in wf_task_names:
         if os.path.isdir(os.path.join(wf_path, task_dir)):
             if "pid" in os.listdir(os.path.join(wf_path,task_dir)):
                 pid = open(wf_path + "/" + task_dir + "/pid", "r").read()
