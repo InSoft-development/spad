@@ -20,8 +20,10 @@ t = datetime.now()
 print("data read")
 
 client = clickhouse_connect.get_client(host='10.23.0.87', username='default', password='asdf')
-kks_df = pd.read_csv("kks_with_groups.csv", sep=";",names=["kks","descr","group"])
-groups = set(kks_df["group"]) - set([0])
+kks_df = client.query_df("SELECT * from kks")
+groups = set(kks_df["group"].astype(int)) - set([0])
+print(groups)
+
 header_p = ""
 for g in groups:
     header_p += "anomaly_time"+str(g)+" Nullable(Float64)," \
