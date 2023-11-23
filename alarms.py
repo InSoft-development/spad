@@ -1,6 +1,6 @@
 import signal
 import time
-from datetime import datetime
+from datetime import datetime,timedelta
 import pandas as pd
 import clickhouse_connect
 
@@ -19,50 +19,62 @@ signal.signal(signal.SIGINT, handler_stop)
 t = datetime.now()
 print("data read")
 
-client = clickhouse_connect.get_client(host='10.23.0.177', username='default', password='asdf')
-
-header_a = "N Float64, potential Float64, KrP Int, P Float64, anomaly_time Nullable(Float64)," \
-        "KrT Int, anomaly_date Nullable(DateTime64(3,\'Europe/Moscow\')), timestamp DateTime64(3,\'Europe/Moscow\')," \
-        "model_timestamp DateTime64(3,\'Europe/Moscow\')"
-client.command("DROP TABLE IF EXISTS slices_play_multic")
-sql = "CREATE TABLE slices_play_multic (" + header_a + ") ENGINE = " \
+client = clickhouse_connect.get_client(host='10.23.0.87', username='default', password='asdf')
+kks_df = pd.read_csv("kks_with_groups.csv", sep=";",names=["kks","descr","group"])
+groups = set(kks_df["group"]) - set([0])
+header_p = ""
+for g in groups:
+    header_p += "anomaly_time"+str(g)+" Nullable(Float64)," \
+        "anomaly_date"+str(g)+" Nullable(DateTime64(3,\'Europe/Moscow\'))," \
+        "P"+str(g)+" Float64, "
+header_p += "timestamp DateTime64(3,\'Europe/Moscow\')"
+client.command("DROP TABLE IF EXISTS sum_p")
+sql = "CREATE TABLE sum_p (" + header_p + ") ENGINE = " \
       "MergeTree() PARTITION BY toYYYYMM(timestamp) ORDER BY (timestamp) PRIMARY KEY (timestamp)"
 print(sql, "\n\n")
 client.command(sql)
 
-client.command("DROP TABLE IF EXISTS alarms_multic")
-sql = "CREATE TABLE alarms_multic (timestamp DateTime64(3,\'Europe/Moscow\'), alarm String, skipped Bool) ENGINE = " \
+client.command("DROP TABLE IF EXISTS alarms")
+sql = "CREATE TABLE alarms (alarm String, group Int, skipped Bool, timestamp DateTime64(3,\'Europe/Moscow\')) ENGINE = " \
       "MergeTree() PARTITION BY toYYYYMM(timestamp) ORDER BY (timestamp) PRIMARY KEY (timestamp)"
 print(sql, "\n\n")
 client.command(sql)
 
-KrP_anomaly_active = False
-KrT_anomaly_active = False
 while not terminate_flag:
-        row = client.query_df("SELECT * FROM slices_play WHERE timestamp > subtractSeconds(now(),5) order by timestamp desc limit 1")[0]
-        if row["KrP"] == 1:
-            if not KrP_anomaly_active:
-                KrP_anomaly_active = True
-                kks = d.drop("timestamp",axis=1).idxmax(axis=1)[0]
-                data = "Превышение уровня аномальности на протяжении 6 часов, потенциальная причина датчик " + kks
-                print(data)
-                d = pd.DataFrame([{"timestamp": t, "alarm": data, "skipped":False}])
-                client.insert_df('alarms_multic', d)
-        else:
-            KrP_anomaly_active = False
+    sum_p = pd.DataFrame()
+    alarms = pd.DataFrame()
+    for g in groups:
+        lstm = client.query_df("SELECT prob,count, timestamp FROM lstm_group"+str(g)+" order by timestamp desc limit 1")
+        print("LSTM:\n", lstm)
 
-        if row["KrT"] == 1:
-            if not KrT_anomaly_active:
-                KrT_anomaly_active = True
-                kks = d.drop("timestamp",axis=1).idxmax(axis=1)[0]
-                data = "Прогнозное время до аномалии меньше 720 часов, потенциальная причина датчик  " + kks
-                print(data)
-                d = pd.DataFrame([{"timestamp": t, "alarm": data, "skipped":False}])
-                client.insert_df('alarms_multic', d)
+        pot = client.query_df("SELECT probability,anomaly_time, timestamp FROM potential_predict_"+str(g)+" order by timestamp desc limit 1")
+        print("Potential:\n", pot)
+
+        P = max(lstm["prob"][0], pot["probability"][0])
+        if pot["anomaly_time"][0] == "NaN":
+            anomaly_time = lstm["count"][0]
         else:
-            KrT_anomaly_active = False
-        if terminate_flag:
-            break
-        else:
-            time.sleep(0.01)
-        print(index)
+            anomaly_time = min(lstm["count"][0], int(pot["anomaly_time"][0]))
+        anomaly_date = datetime.now() + timedelta(hours=anomaly_time)
+        t = max(pot["timestamp"][0],lstm["timestamp"][0])
+        sum_p["anomaly_time"+str(g)] = [anomaly_time]
+        sum_p["anomaly_date"+str(g)] = [anomaly_date]
+        sum_p["P"+str(g)] = P
+
+        if P > 95:
+            data = "Превышение уровня аномальности, gr=" + str(g)
+            print(data)
+            d = pd.DataFrame([{"timestamp": t, "alarm": data, "group": g, "skipped": False}])
+            client.insert_df('alarms', d)
+
+        if anomaly_time < 720:
+            data = "Прогнозное время до аномалии меньше 720 часов, gr=" + str(g)
+            print(data)
+            d = pd.DataFrame([{"timestamp": t, "alarm": data, "group": g, "skipped": False}])
+            client.insert_df('alarms', d)
+    print(sum_p)
+    client.insert_df('sum_p', sum_p)
+    if terminate_flag:
+        break
+    else:
+        time.sleep(5)
