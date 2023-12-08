@@ -1,0 +1,34 @@
+{
+    "project": {
+        "id": 1,
+        "name": "sochi",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "lstm",
+                "tasks": [
+					{
+						"id": 0,
+						"name": "mkdir_data",
+						"place": 1,
+						"exec": "await",
+						"function": "mkdir",
+						"params":
+							[
+								"-p",
+								"/opt/spa/data/sochi/lstm/Data"
+							]
+					},
+									{
+                        "id": 1,
+                        "name": "lstm_online",
+                        "place": 1,
+                        "exec": "parallel",
+                        "function": "lstm.py",
+                        "params": []
+                    }
+			                ]
+            }
+        ]
+    }
+}

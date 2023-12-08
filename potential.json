@@ -1,0 +1,162 @@
+{
+    "project": {
+        "id": 1,
+        "name": "sochi",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "potential",
+                "tasks": [
+					{
+						"id": 0,
+						"name": "mkdir_data",
+						"place": 1,
+						"exec": "await",
+						"function": "mkdir",
+						"params":
+							[
+								"-p",
+								"/opt/spa/data/sochi/potential/sochi/Data"
+							]
+					},
+					{
+                        "id": 1,
+                        "name": "prepare_sochi",
+                        "place": 2,
+                        "exec": "await",
+                        "function": "prepare_sochi.sh",
+                        "params": []
+                    },
+                    {
+                        "id": 2,
+                        "name": "sochi",
+                        "place": 3,
+                        "exec": "await",
+                        "function": "SOCHI.py",
+                        "params": []
+                    },
+					{
+                        "id": 3,
+                        "name": "prepare_potential_train",
+                        "place": 4,
+                        "exec": "await",
+                        "function": "prepare_potential_train.sh",
+                        "params": []
+                    },
+					{
+                        "id": 4,
+                        "name": "potential_train",
+                        "place": 5,
+                        "exec": "await",
+                        "function": "potential_train_json.py",
+                        "params": []
+                    },
+					{
+                        "id": 5,
+                        "name": "prepare_potential_analyse",
+                        "place": 6,
+                        "exec": "await",
+                        "function": "prepare_potential_analyse.sh",
+                        "params": []
+                    },
+					{
+                        "id": 6,
+                        "name": "potential_analyse",
+                        "place": 7,
+                        "exec": "await",
+                        "function": "potential_analyse_period_json.py",
+                        "params": []
+                    },
+					{
+                        "id": 7,
+                        "name": "prepare_potential_limit",
+                        "place": 8,
+                        "exec": "await",
+                        "function": "prepare_potential_limit.sh",
+                        "params": []
+                    },
+					{
+                        "id": 8,
+                        "name": "potential_limit",
+                        "place": 9,
+                        "exec": "await",
+                        "function": "P_limit_improvement.py",
+                        "params": []
+                    },
+					{
+                        "id": 9,
+                        "name": "prepare_anomaly_time",
+                        "place": 10,
+                        "exec": "await",
+                        "function": "prepare_anomaly_time.sh",
+                        "params": []
+                    },
+					{
+                        "id": 10,
+                        "name": "prepare_online",
+                        "place": 11,
+                        "exec": "await",
+                        "function": "prepare_online.sh",
+                        "params": []
+                    },
+					{
+                        "id": 11,
+                        "name": "potential_online",
+                        "place": 12,
+                        "exec": "parallel",
+                        "function": "potentials_online_clickhouse.py",
+                        "params": []
+                    },
+					{
+                        "id": 12,
+                        "name": "anomaly_time_intercept",
+                        "place": 13,
+                        "exec": "parallel",
+                        "function": "anomaly_time_predict_intercept.py",
+                        "params": []
+                    },
+					{
+                        "id": 13,
+                        "name": "anomaly_time_prob",
+                        "place": 14,
+                        "exec": "await",
+                        "function": "anomaly_time_predict_prob.py",
+                        "params": []
+                    },
+					{
+                        "id": 14,
+                        "name": "prepare_intervals",
+                        "place": 15,
+                        "exec": "await",
+                        "function": "prepare_intervals.sh",
+                        "params": []
+                    },
+					{
+                        "id": 15,
+                        "name": "intervals_intercept",
+                        "place": 16,
+                        "exec": "parallel",
+                        "function": "potential_intervals_json.py",
+                        "params": 
+							[
+								"-m",
+								"intercept"
+							]
+                    },
+					{
+                        "id": 16,
+                        "name": "intervals_prob",
+                        "place": 17,
+                        "exec": "parallel",
+                        "function": "potential_intervals_json.py",
+                        "params": 
+							[
+								"-m",
+								"probability"
+							]
+                    }
+                ]
+            }
+        ]
+    }
+}
