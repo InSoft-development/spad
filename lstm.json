@@ -1,34 +1,58 @@
 {
-    "project": {
+  "project": {
+    "id": 1,
+    "name": "sochi",
+    "workflows": [
+      {
         "id": 1,
-        "name": "sochi",
-        "workflows": [
-            {
-                "id": 1,
-                "name": "lstm",
-                "tasks": [
-					{
-						"id": 0,
-						"name": "mkdir_data",
-						"place": 1,
-						"exec": "await",
-						"function": "mkdir",
-						"params":
-							[
-								"-p",
-								"/opt/spa/data/sochi/lstm/Data"
-							]
-					},
-									{
-                        "id": 1,
-                        "name": "lstm_online",
-                        "place": 1,
-                        "exec": "parallel",
-                        "function": "lstm.py",
-                        "params": []
-                    }
-			                ]
-            }
+        "name": "lstm",
+        "tasks": [
+          {
+            "id": 0,
+            "name": "mkdir_data",
+            "place": 1,
+            "exec": "await",
+            "function": "mkdir",
+            "params": [
+              "-p",
+              "/opt/spa/data/sochi/lstm/Data"
+            ]
+          },
+          {
+            "id": 1,
+            "name": "cp_conf",
+            "place": 1,
+            "exec": "await",
+            "function": "cp",
+            "params": [
+              "/home/spa/lstm/config_Sochi.yml",
+              "/opt/spa/data/sochi/lstm/Data"
+            ]
+          },
+          {
+            "id": 2,
+            "name": "cp_weights",
+            "place": 2,
+            "exec": "await",
+            "function": "cp",
+            "params": [
+              "/home/spa/lstm/data/SOCHI_new1/*",
+              "/opt/spa/data/sochi/lstm/Data"
+            ]
+          },
+
+          {
+            "id": 3,
+            "name": "lstm_online",
+            "place": 3,
+            "exec": "parallel",
+            "function": "predict_online.py",
+            "params": [
+              "--config_path SOCHI"
+            ]
+          }
         ]
-    }
+      }
+    ]
+  }
 }
