@@ -46,6 +46,7 @@ class RunningTask(object):
             params = self.task_json()["task"]["params"]
             if not os.path.isfile(function_path):
                 function_path = self.task_json()["task"]["function"]
+        logging.info(datetime.datetime.now().isoformat() + ": RUN:" + function_path + ' ' +  ' '.join(str(i) for i in params))
         self.process = subprocess.Popen([function_path] + params,
                                         stdout=self.log, stderr=self.log, encoding='utf-8',
                                         cwd=self.path)
