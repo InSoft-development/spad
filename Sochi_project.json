@@ -1,0 +1,94 @@
+{
+    "project": {
+        "id": 1,
+        "name": "Sochi",
+        "workflows": [
+            {
+                "id": 1,
+                "name": "clickhouse_play",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "play",
+                        "place": 2,
+                        "exec": "await",
+                        "function": "clickhouse_play.py",
+                        "params": []
+		    }
+		]
+	    },
+	    {
+                "id": 2,
+                "name": "lstm",
+                "tasks": [
+                    {
+                        "id": 0,
+                        "name": "cp",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "spad_cp",
+                        "params":
+                            [
+                                "/home/spa/Online-LSTM/",
+                                "task:lstm"
+                            ]
+                    },
+                    {
+                        "id": 1,
+                        "name": "lstm",
+                        "place": 2,
+                        "exec": "await",
+                        "function": "predict_online.py",
+                        "params": [
+				"--config_path",
+				"SOCHI",
+				"--csv_kks",
+				"True"			
+			]
+		    }
+                ]
+            },
+	    {
+                "id": 3,
+                "name": "potentials",
+                "tasks": [
+                    {
+                        "id": 0,
+                        "name": "cp",
+                        "place": 1,
+                        "exec": "await",
+                        "function": "spad_cp",
+                        "params":
+                            [
+                                "/home/spa/Potential_multi_group/",
+                                "task:potentials"
+                            ]
+                    },
+                    {
+                        "id": 1,
+                        "name": "potentials",
+                        "place": 2,
+                        "exec": "await",
+                        "function": "potentials_online_clickhouse.py",
+                        "params": []
+		    }
+                ]
+            },
+	    {
+                "id": 4,
+                "name": "alarms",
+                "tasks": [
+                    {
+                        "id": 1,
+                        "name": "alarms",
+                        "place": 2,
+                        "exec": "await",
+                        "function": "alarms.py",
+                        "params": []
+		    }
+                ]
+            }
+	]
+    }
+}
+
